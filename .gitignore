@@ -1,3 +1,7 @@
 ﻿__pycache__/
 *.pyc
-.env
+rubric.json
+homilies/
+dist/
+build/
+*.egg-info/
