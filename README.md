@@ -1,21 +1,38 @@
-﻿# 🛡️ Merkabah (メルカバ) - Autonomous Cyber Defense Fortress
+﻿# Merkabah: Zero-Trust OS Fortress for Local AI Agents
 
-Merkabah（メルカバ）は、自律型AIエージェントの暴走や悪意あるコードの実行をOSの深層で完全に監視・遮断する「ゼロトラストAIサンドボックス」です。
+I was terrified of giving local LLMs and autonomous agents terminal access. Building sandboxes and Docker containers for every small AI script felt like overkill, but leaving `os.system` exposed is a security nightmare.
 
-本システムは、世界で最も普遍的な「大天使（Archangel）」たちの役割をアーキテクチャにマッピングし、それぞれが独立した防衛プログラムとして協調動作する堅牢な防壁を構築しています。AIに対するあらゆる通信と意図を透明化し、システム内での悪行を物理的に不可能にします。
+So I built **Merkabah**. 
 
-## 🏛️ アーキテクチャ (大天使防衛層)
+It’s a lightweight, zero-dependency Python package that intercepts and physically blocks malicious system calls (like `rm -rf /`) at the OS level using `sys.addaudithook` and AST parsing. 
 
-上位の天使階級（天上）のルールに基づき、人間界（ホストOS）に直接触れる以下の大天使たちがシステムを監査します。
+Just import it, and your environment is sealed.
 
-* **大天使 ミカエル (Michael):** `sys.addaudithook` を用いたOS深層の絶対防壁（anjo-da-maquina）。AIによるOSコマンドやプロセス起動の意図をすべて監査し、不正な干渉を物理的に弾き返します。
-* **大天使 ガブリエル (Gabriel):** 抽象構文木(AST)を用いた意図の検閲システム。AIが生成したコードを実行前に解読し、難読化された悪意や禁止モジュールの呼び出しを遮断します。
-* **大天使 ラファエル (Raphael):** サンドボックス環境の構築と安全な隔離。未知のコードを本環境から切り離し、システムを常に清浄な状態に保ちます。
+## 🚀 Quick Start (The Canon)
 
-## 🚀 導入と普及 (The Canon)
-
-Merkabahは、あらゆるAIプロジェクトに「1行のコード」で寄生し、システムを保護します。
+Merkabah operates as a parasite. You don't need complex configurations. Just add one line to the top of your AI agent's code:
 
 ```python
-# あなたのAIエージェントのコードの先頭に、この1行を記述するだけです。
 import merkabah
+# Your AI code here...
+```
+
+The moment it's imported, the absolute defense hook is deployed deep within the OS. Any attempt by the AI to spawn unauthorized subprograms or shell commands will be instantly blocked with a `RuntimeError`.
+
+## 🏛️ Architecture: The Archangel Metaphor
+
+To maintain a strict, universally understandable separation of concerns, the defense layers are mapped to the concept of Archangels:
+
+*   **Michael (OS Deep Hook):** Uses Python's native `sys.addaudithook` to physically intercept and block unauthorized `os.system`, `subprocess.Popen`, and `os.exec` calls at runtime.
+*   **Gabriel (AST Inquisition):** Parses the Abstract Syntax Tree of AI-generated code *before* execution to detect and reject the summoning of banned modules (e.g., `os`, `shlex`).
+*   **Raphael (Environment Seal):** Audits the execution environment upon startup, ensuring the code isn't running in unapproved/polluted external cloud CI/CD pipelines.
+
+## 📜 Extensibility (Local Doctrines)
+
+You can define your own local rules without touching the core code (The Canon).
+
+*   **The Rubrics (`rubric.json`):** A simple configuration file in your root directory where you can define project-specific banned modules (e.g., block `socket` to prevent phone-home attacks).
+*   **The Homilies (`homilies/`):** A directory for custom Python plugins (MODs). Drop your custom validation logic here, and Merkabah will dynamically load them at startup.
+
+## License
+MIT
