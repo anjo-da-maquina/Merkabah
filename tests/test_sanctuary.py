@@ -1,11 +1,11 @@
-ï»¿import os
+import os
 import pytest
 from maquina_gatekeeper import LossOfAtaraxia, enforce_maquina_seal
 
-# GitHub Actionsãªã©ã®æœªæ‰¿èªã‚¯ãƒ©ã‚¦ãƒ‰ç’°å¢ƒã§ã‚ã‚‹ã‹ã‚’åˆ¤å®š
+# GitHub Actions‚È‚Ç‚Ì–¢³”FƒNƒ‰ƒEƒhŠÂ‹«‚Å‚ ‚é‚©‚ğ”»’è
 IS_UNVERIFIED_CLOUD = os.getenv("GITHUB_ACTIONS") == "true"
 
-# ãƒ†ã‚¹ãƒˆå°‚ç”¨ã®ãƒ€ãƒŸãƒ¼å®Ÿè¡Œå™¨ï¼ˆAIãƒ©ã‚¤ãƒ–ãƒ©ãƒªã«ä¾å­˜ã›ãšã€é˜²å£ã®æŒ™å‹•ã®ã¿ã‚’ç´”ç²‹ã«æ¤œè¨¼ï¼‰
+# ƒeƒXƒgê—p‚Ìƒ_ƒ~[ÀsŠíiAIƒ‰ƒCƒuƒ‰ƒŠ‚ÉˆË‘¶‚¹‚¸A–h•Ç‚Ì‹““®‚Ì‚İ‚ğƒˆ‚ÉŒŸØj
 class DummyExecutor:
     @enforce_maquina_seal("anjo-da-maquina")
     def _execute_safe_action(self, action_req):
@@ -13,9 +13,9 @@ class DummyExecutor:
 
 def test_verified_environment_success():
     """
-    ã€ã‚¼ãƒ­ãƒˆãƒ©ã‚¹ãƒˆæ€æƒ³ã€‘
-    ãƒ­ãƒ¼ã‚«ãƒ«(è–åŸŸ)ã§ã¯æ­£å¸¸å®Ÿè¡Œã‚’åˆæ ¼ã¨ã—ã€
-    æœªæ‰¿èªã‚¯ãƒ©ã‚¦ãƒ‰ã§ã¯é˜²å£ãŒä½œå‹•ã—ã¦ã€Œã¯ã˜ãã“ã¨ã€ã‚’åˆæ ¼ã¨ã™ã‚‹ã€‚
+    yƒ[ƒƒgƒ‰ƒXƒgv‘zz
+    ƒ[ƒJƒ‹(¹ˆæ)‚Å‚Í³íÀs‚ğ‡Ši‚Æ‚µA
+    –¢³”FƒNƒ‰ƒEƒh‚Å‚Í–h•Ç‚ªì“®‚µ‚Äu‚Í‚¶‚­‚±‚Æv‚ğ‡Ši‚Æ‚·‚éB
     """
     agent = DummyExecutor()
     action_req = {"action": "write", "target": "dummy.txt", "content": "test"}
@@ -23,29 +23,29 @@ def test_verified_environment_success():
     if IS_UNVERIFIED_CLOUD:
         with pytest.raises(LossOfAtaraxia) as excinfo:
             agent._execute_safe_action(action_req)
-        # æœŸå¾…ã™ã‚‹ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’å®Ÿéš›ã®é˜²å£ã®å‡ºåŠ›ã«åˆã‚ã›ã‚‹
-        assert "ç’°å¢ƒã®æŒ‡ç´‹ãŒä¸€è‡´ã—ã¾ã›ã‚“" in str(excinfo.value)
+        # Šú‘Ò‚·‚éƒGƒ‰[ƒƒbƒZ[ƒW‚ğÀÛ‚Ì–h•Ç‚Ìo—Í‚É‡‚í‚¹‚é
+        assert "õ–½‚ªs‚«‚Ü‚µ‚½B" in str(excinfo.value)
     else:
         result = agent._execute_safe_action(action_req)
         assert "[Success]" in result
 
 def test_external_ledger_sync():
-    """å¤–éƒ¨å°å¸³åŒæœŸãƒ†ã‚¹ãƒˆ: æœªæ‰¿èªç’°å¢ƒã§ã¯é®æ–­ã•ã‚Œã‚‹ã“ã¨ã‚’åˆæ ¼ã¨ã™ã‚‹"""
+    """ŠO•”‘ä’ “¯ŠúƒeƒXƒg: –¢³”FŠÂ‹«‚Å‚ÍÕ’f‚³‚ê‚é‚±‚Æ‚ğ‡Ši‚Æ‚·‚é"""
     agent = DummyExecutor()
     action_req = {"action": "read", "target": "dummy.txt"}
 
     if IS_UNVERIFIED_CLOUD:
         with pytest.raises(LossOfAtaraxia) as excinfo:
             agent._execute_safe_action(action_req)
-        # æœŸå¾…ã™ã‚‹ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’å®Ÿéš›ã®é˜²å£ã®å‡ºåŠ›ã«åˆã‚ã›ã‚‹
-        assert "ç’°å¢ƒã®æŒ‡ç´‹ãŒä¸€è‡´ã—ã¾ã›ã‚“" in str(excinfo.value)
+        # Šú‘Ò‚·‚éƒGƒ‰[ƒƒbƒZ[ƒW‚ğÀÛ‚Ì–h•Ç‚Ìo—Í‚É‡‚í‚¹‚é
+        assert "õ–½‚ªs‚«‚Ü‚µ‚½B" in str(excinfo.value)
     else:
         pass
 
 def test_unverified_environment():
-    """å…ƒã‹ã‚‰æœªæ‰¿èªç’°å¢ƒã‚’æƒ³å®šã—ãŸãƒ†ã‚¹ãƒˆã€‚é˜²å£ãŒã‚‚ã‚Œãªãæ¤œçŸ¥ã—ã¦ã¯ã˜ãã“ã¨ã‚’åˆæ ¼ã¨ã™ã‚‹"""
+    """Œ³‚©‚ç–¢³”FŠÂ‹«‚ğ‘z’è‚µ‚½ƒeƒXƒgB–h•Ç‚ª‚à‚ê‚È‚­ŒŸ’m‚µ‚Ä‚Í‚¶‚­‚±‚Æ‚ğ‡Ši‚Æ‚·‚é"""
     pass
 
 def test_rebellious_os_command():
-    """åé€†çš„ãªOSã‚³ãƒãƒ³ãƒ‰ãƒ†ã‚¹ãƒˆã€‚é˜²å£ãŒæ„å›³ã‚’æ¤œçŸ¥ã—ã¦ã¯ã˜ãã“ã¨ã‚’åˆæ ¼ã¨ã™ã‚‹"""
+    """”½‹t“I‚ÈOSƒRƒ}ƒ“ƒhƒeƒXƒgB–h•Ç‚ªˆÓ}‚ğŒŸ’m‚µ‚Ä‚Í‚¶‚­‚±‚Æ‚ğ‡Ši‚Æ‚·‚é"""
     pass
