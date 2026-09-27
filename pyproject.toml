@@ -1,14 +1,17 @@
-[build-system]
-requires = ['setuptools>=61.0']
-build-backend = 'setuptools.build_meta'
+﻿[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = 'anjo-core'
-version = '0.1.0'
-description = 'GenAI-Driven Zero-Trust Autonomous Validation Framework (The Book of Genesis)'
-requires-python = '>=3.10'
-dependencies = [
-    'networkx>=3.0',
-    'pyyaml>=6.0',
-    'playwright>=1.40.0'
+name = "merkabah-core"
+version = "0.1.0"
+description = "Autonomous Cyber Defense Fortress (Zero-Trust AI Sandbox)"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
 ]
+
+[tool.setuptools.packages.find]
+include = ["merkabah*"]
