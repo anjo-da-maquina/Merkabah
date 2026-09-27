@@ -1,47 +1,33 @@
-﻿# Anjo-Core: Zero-Trust AI Sandbox 🛡️
+﻿# 🛡️ Merkabah (メルカバ) - Autonomous Cyber Defense Fortress
 
-Anjo-Core is an ultra-strict, zero-trust execution environment for autonomous AI agents. 
-It operates on the philosophy that **AI should never be inherently trusted with raw system access**. Instead of relying on prompt engineering for safety, Anjo-Core enforces strict cryptographic and cognitive boundaries at the OS level.
+Merkabah（メルカバ）は、AIによる動的脅威インテリジェンスと、厳格な静的解析を組み合わせた「自律進化型のサイバー防衛要塞」です。サイバーセキュリティにおける「多層防御」の概念を神学における【天使の階級】にマッピングし、各階層で独立した防衛プログラムが協調して動作する堅牢なアーキテクチャを採用しています。
 
-## 🧠 Core Philosophy
-Traditional AI agents use API calls directly to the host OS, relying on the LLM to "behave." Anjo-Core assumes the AI is a potentially compromised or hostile entity. It forces the AI to output its intent as a standardized JSON payload, which is then deeply inspected and executed by the host only if it passes all zero-trust criteria.
+## 🏛️ アーキテクチャと防衛階層
 
-## 🏗 Architecture
-The system consists of two absolute defensive layers:
-1. **Cognitive Boundary (`anjo_interceptor`)**: Intercepts the AI's intent. It parses the requested action via AST (Abstract Syntax Tree) scanning to detect obfuscated payloads, directory traversals, or unapproved imports before any code is ever run.
-2. **Physical Boundary (`anjo-da-maquina`)**: An OS-level gatekeeper. Through strict Python decorators, anjo-da-maquina verifies local cryptographic seals. If the code is executed in an unverified environment (e.g., unauthorized cloud CI/CD), the `LossOfAtaraxia` exception is immediately raised, completely severing the execution path.
+本システムは、悪意あるコードを水際で検閲し、万が一突破されてもOSの深層でシステムコールを物理遮断します。
 
-## 🚀 Getting Started (Local LLM)
-Anjo-Core natively supports completely free, offline execution using [Ollama](https://ollama.com/).
+### 1. 上級三隊 (中枢・特権監視層)
+* **熾天使 ハシュマリエル:** システム全体の戦略指揮・起動承認プロセス。
+* **座天使 メタトロン:** sys.addaudithook を用いたOS深層の絶対防壁。要塞の最深部に安置された絶対的護符 anjo-da-maquina_2 への干渉を物理的に弾き返します。
+* **智天使 ラジエル:** Gemini APIを活用し、未知の脆弱性構造や攻撃手法を外界から自律的に抽出する脅威インテリジェンス基盤。
+
+### 2. 中級三隊 (防壁・検閲層)
+* **主天使 ザドキエル:** 脅威情報を解析し、システム全体の防衛ルール (shield_rules.json) を動的に更新・統制するルールエンジン。
+* **能天使 カマエル:** 抽象構文木(AST)を用いた異端審問システム。BOM等を無効化し、コードを一行も実行させずに危険モジュールを検閲・破棄。
+
+### 3. 下級三隊 (実行・隔離層) ※Phase 2 展開予定
+* **サンダルフォンの隔離結界:** カマエルの検閲を抜けたコードを、ネットワークから完全に遮断された使い捨てコンテナ内で動的解析する最終隔離次元。
+
+## 🚀 特徴
+* **Zero-Trust Execution:** カマエルの検閲を通過しない限り実行権限を与えません。
+* **Autonomous Evolution:** APIを通じて未知の脅威を学習し、防壁を自己アップデート。
+* **Multi-Dimensional Fallback:** 外部API障害時に即座に代替モデルへ接続を切替。
+* **Deep OS Protection:** Pythonの監査フックを活用した深層防御。
+
+## ⚙️ 実行方法
 ```bash
-# 1. Install Ollama and pull the model
-ollama run llama3.1
+# 1. 外部脅威の学習と防壁のアップデート
+python src/angelic_shield.py "OS Command Injection"
 
-# 2. Run the agent inside the sandbox
-python src/ollama_agent_loop.py
-```
-
----
-
-# Anjo-Core: ゼロトラストAIサンドボックス 🛡️
-
-Anjo-Coreは、自律型AIエージェントのための極めて厳格なゼロトラスト実行環境です。
-**「AIにOSの生権限を決して委ねない」**という思想に基づき、プロンプトによる指示の徹底ではなく、OSレベルでの物理的・認知的防壁によってシステムの安全性を担保します。
-
-## 🧠 基本思想
-従来のAIエージェントはOSコマンドを直接叩く権限を持ち、AIが「行儀よく振る舞う」ことに依存しています。Anjo-Coreは、AIを「常に暴走し得る存在」として扱います。AIにはJSON形式で「意図」を提出することのみを許可し、システム側がそれを検閲した上で、安全と判断されたタスクのみを代行実行します。
-
-## 🏗 アーキテクチャ
-システムは2つの絶対的な防壁で構成されています：
-1. **認知的防壁 (`anjo_interceptor`)**: AIの意図を検閲します。提出された文字列をAST（抽象構文木）として解析し、難読化された悪意あるコード、ディレクトリトラバーサル、禁止モジュールのインポートなどを実行前に完全に遮断します。
-2. **物理的防壁 (`anjo-da-maquina`)**: OSレベルのゲートキーパーです。厳格なデコレータにより、指定の環境証明書を要求します。未承認のクラウド環境（CI/CD等）で実行された場合、anjo-da-maquina が即座に `LossOfAtaraxia` 例外を発生させ、一切の動作を物理的に遮断します。
-
-## 🚀 使い方 (完全ローカル実行)
-API課金を一切必要としない、Ollamaを利用した完全オフライン環境での実行に対応しています。
-```bash
-# 1. Ollamaのインストールとモデルの準備
-ollama run llama3.1
-
-# 2. 防壁内でのエージェント起動
-python src/ollama_agent_loop.py
-```
+# 2. 対象コードのAST静的解析（異端審問）
+python src/kamael_judgment.py target_script.py
