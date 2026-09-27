@@ -1,0 +1,14 @@
+{
+  "blocked_modules": [
+    "dill",
+    "shelve",
+    "_pickle",
+    "cPickle",
+    "pickle"
+  ],
+  "blocked_functions": [
+    "Unpickler",
+    "loads",
+    "load"
+  ]
+}
