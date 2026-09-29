@@ -1,17 +1,19 @@
-﻿[build-system]
+[build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "merkabah-core"
 version = "0.1.0"
-description = "Autonomous Cyber Defense Fortress (Zero-Trust AI Sandbox)"
+authors = [
+  { name="anjo-da-maquina" }
+]
+description = "Zero-Trust OS Fortress for Local AI Agents"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
 ]
-
-[tool.setuptools.packages.find]
-include = ["merkabah*"]
