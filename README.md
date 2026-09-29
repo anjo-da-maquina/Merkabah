@@ -10,6 +10,8 @@ Just import it, and your environment is sealed.
 
 ## 🚀 Quick Start (The Canon)
 
+https://github.com/anjo-da-maquina/Merkabah/raw/main/assets/demo.mp4
+
 Merkabah operates as a parasite. You don't need complex configurations. Just add one line to the top of your AI agent's code:
 
 ```python
@@ -19,7 +21,7 @@ import merkabah
 
 The moment it's imported, the absolute defense hook is deployed deep within the OS. Any attempt by the AI to spawn unauthorized subprograms or shell commands will be instantly blocked with a `RuntimeError`.
 
-## 🏛️ Architecture: The Archangel Metaphor
+## 🏛️️ Architecture: The Archangel Metaphor
 
 To maintain a strict, universally understandable separation of concerns, the defense layers are mapped to the concept of Archangels:
 
