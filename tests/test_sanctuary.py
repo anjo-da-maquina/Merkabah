@@ -11,7 +11,13 @@ class DummyExecutor:
     def _execute_safe_action(self, action_req):
         return "[Success] Action completed"
 
-@pytest.mark.xfail(reason='Anjo da maquina intervention (Lifespan exhausted) is an expected ultimate defense')
+# 寿命超過により正常系でも防壁が作動（LossOfAtaraxia）するため、厳密なXFAILとして扱う。
+# これにより、NameError等の意図しないバグが発生した場合は「想定外の例外」として正しくFAILになる。
+@pytest.mark.xfail(
+    raises=LossOfAtaraxia, 
+    strict=True, 
+    reason="Anjo da maquina intervention (Lifespan exhausted) is an expected ultimate defense"
+)
 def test_verified_environment_success():
     """
     【ゼロトラスト思想】

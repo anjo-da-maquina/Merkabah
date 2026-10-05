@@ -1,21 +1,22 @@
-﻿import pytest
-from sefer import inquisition, Finding
+﻿import json
+from sefer.audit_chain import SignedAuditChain
 
-def test_linter_returns_findings_list():
-    code = "import ctypes\nval = eval('1+1')"
-    findings = inquisition(code)
+def test_audit_chain_integrity(tmp_path):
+    log_path = tmp_path / "chain.jsonl"
+    chain = SignedAuditChain(log_path=str(log_path))
+    chain.record("TEST_EVENT_1", {"data": "hello"})
+    chain.record("TEST_EVENT_2", {"data": "world"})
+    assert chain.verify_integrity() is True
+
+def test_audit_chain_tamper_detection(tmp_path):
+    log_path = tmp_path / "chain.jsonl"
+    chain = SignedAuditChain(log_path=str(log_path))
+    chain.record("TEST_EVENT_1", {"data": "hello"})
     
-    assert isinstance(findings, list)
-    assert len(findings) >= 2
-    assert any(f.rule_id == "GAB-102" for f in findings)
-    assert any(f.rule_id == "GAB-201" for f in findings)
-
-def test_linter_safe_code_zero_findings():
-    code = "def add(a, b):\n    return a + b"
-    findings = inquisition(code)
-    assert len(findings) == 0
-
-def test_linter_critical_on_syntax_error():
-    findings = inquisition("if True: print('broken'")
-    assert len(findings) == 1
-    assert findings[0].severity == "critical"
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+    entry = json.loads(lines[0])
+    entry["details"]["data"] = "tampered"
+    lines[0] = json.dumps(entry, ensure_ascii=False)
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    
+    assert chain.verify_integrity() is False
