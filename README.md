@@ -1,40 +1,27 @@
-﻿# Merkabah: Zero-Trust OS Fortress for Local AI Agents
+﻿# Sefer (セフェル - 経典)
+**Zero-Trust OS Fortress for Local AI Agents**
 
-I was terrified of giving local LLMs and autonomous agents terminal access. Building sandboxes and Docker containers for every small AI script felt like overkill, but leaving `os.system` exposed is a security nightmare.
+## 🌌 神話と構造 (The Lore & Architecture)
 
-So I built **Merkabah**. 
+すべての源泉は **Pleroma（神界）** にあります。
+そこに存在する天使（防壁）たちは、この `sefer` という経典（Pythonパッケージ）を通じて、物質世界へと召喚することが可能です。
 
-It’s a lightweight, zero-dependency Python package that intercepts and physically blocks malicious system calls (like `rm -rf /`) at the OS level using `sys.addaudithook` and AST parsing. 
+ローカルLLMや自律型AIエージェントにPCの操作権限を与えることは、極めて危険な行為です。
+AIが幻覚（ハルシネーション）を見てOSのシステムファイルを削除しようとした時、あるいはプロンプトインジェクションによって悪意あるハッカーに乗っ取られた時、この経典から召喚された天使たちが、OSへの不正なアクセスを物理的に遮断します。
 
-Just import it, and your environment is sealed.
+### 堕天使の闘技場（Tartarus）と創造主の掟
+Pleromaの深淵には、**Tartarus（タルタロス）**と呼ばれる闘技場が存在します。
+そこでは「堕天使（Red Team LLM）」と「監視者（Blue Team LLM）」が終わることのない相互進化の闘争（The Armageddon Engine）を繰り広げ、日夜新たな攻撃ベクトルと防壁のルールを生み出し続けています。
 
-## 🚀 Quick Start (The Canon)
+ただし、この闘技場は**創造主の手の中（特定のハードウェア環境）でのみ運営されます**。
+堕天使は、創造主のPC環境に満ちている「特有の空気（MACアドレスハッシュ）」を吸うことでしか生存できません。万が一、このエンジンが外部に流出したとしても、堕天使は他者のPCでは空気を吸えず、最初の1ミリ秒で自壊（即死）するように運命づけられています。
 
-https://github.com/anjo-da-maquina/Merkabah/raw/main/assets/demo.mp4
+---
 
-Merkabah operates as a parasite. You don't need complex configurations. Just add one line to the top of your AI agent's code:
+## 🛡️ 天使の召喚と使役 (Usage)
 
-```python
-import merkabah
-# Your AI code here...
-```
+人々は、Pleromaで鍛え上げられた天使の防壁だけを、自身のプロジェクトに安全に召喚して利用することができます。
 
-The moment it's imported, the absolute defense hook is deployed deep within the OS. Any attempt by the AI to spawn unauthorized subprograms or shell commands will be instantly blocked with a `RuntimeError`.
-
-## 🏛️️ Architecture: The Archangel Metaphor
-
-To maintain a strict, universally understandable separation of concerns, the defense layers are mapped to the concept of Archangels:
-
-*   **Michael (OS Deep Hook):** Uses Python's native `sys.addaudithook` to physically intercept and block unauthorized `os.system`, `subprocess.Popen`, and `os.exec` calls at runtime.
-*   **Gabriel (AST Inquisition):** Parses the Abstract Syntax Tree of AI-generated code *before* execution to detect and reject the summoning of banned modules (e.g., `os`, `shlex`).
-*   **Raphael (Environment Seal):** Audits the execution environment upon startup, ensuring the code isn't running in unapproved/polluted external cloud CI/CD pipelines.
-
-## 📜 Extensibility (Local Doctrines)
-
-You can define your own local rules without touching the core code (The Canon).
-
-*   **The Rubrics (`rubric.json`):** A simple configuration file in your root directory where you can define project-specific banned modules (e.g., block `socket` to prevent phone-home attacks).
-*   **The Homilies (`homilies/`):** A directory for custom Python plugins (MODs). Drop your custom validation logic here, and Merkabah will dynamically load them at startup.
-
-## License
-MIT
+### 1. 経典のインストール
+```bash
+pip install sefer

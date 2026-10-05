@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merkabah Architecture - Zero-Trust OS Fortress</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --michael-color: #f85149;
+            --gabriel-color: #58a6ff;
+            --raphael-color: #3fb950;
+            --extension-color: #d2a8ff;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+        .section-title {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 40px 0 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .card h3 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .tech-stack {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .flow-arrow {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--border-color);
+            margin: 20px 0;
+        }
+        /* Specific Colors */
+        .michael h3 { color: var(--michael-color); }
+        .gabriel h3 { color: var(--gabriel-color); }
+        .raphael h3 { color: var(--raphael-color); }
+        .extension h3 { color: var(--extension-color); }
+        .michael .tech-stack { color: var(--michael-color); border: 1px solid var(--michael-color); }
+        .gabriel .tech-stack { color: var(--gabriel-color); border: 1px solid var(--gabriel-color); }
+        .raphael .tech-stack { color: var(--raphael-color); border: 1px solid var(--raphael-color); }
+        .extension .tech-stack { color: var(--extension-color); border: 1px solid var(--extension-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ MERKABAH</h1>
+            <p>Zero-Trust OS Fortress for Local AI Agents</p>
+        </div>
+
+        <div class="section-title">The Canon (Core Absolute Defense)</div>
+        
+        <div class="grid">
+            <!-- Raphael -->
+            <div class="card raphael">
+                <div class="icon">👁️</div>
+                <h3>Raphael (Environment Seal)</h3>
+                <p>Audits the execution environment upon startup. Prevents the AI from operating in contaminated or unapproved external cloud CI/CD pipelines.</p>
+                <div class="tech-stack">os.getenv() validation</div>
+            </div>
+
+            <!-- Gabriel -->
+            <div class="card gabriel">
+                <div class="icon">📜</div>
+                <h3>Gabriel (AST Inquisition)</h3>
+                <p>Parses the Abstract Syntax Tree (AST) of AI-generated code before execution. Detects and violently rejects the summoning of banned modules.</p>
+                <div class="tech-stack">ast.parse() pre-execution</div>
+            </div>
+
+            <!-- Michael -->
+            <div class="card michael">
+                <div class="icon">⚔️</div>
+                <h3>Michael (OS Deep Hook)</h3>
+                <p>The final absolute defense. Uses Python's native audit hooks to physically intercept and block unauthorized system calls deep within the OS at runtime.</p>
+                <div class="tech-stack">sys.addaudithook() runtime</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">⬇️️ Defense Extensibility</div>
+
+        <div class="section-title">Local Doctrines (Extensibility)</div>
+
+        <div class="grid">
+            <!-- The Rubrics -->
+            <div class="card extension">
+                <div class="icon">📕</div>
+                <h3>The Rubrics</h3>
+                <p>A declarative configuration file (`rubric.json`) at the project root. Allows developers to define project-specific banned modules and events without altering the core Canon.</p>
+                <div class="tech-stack">JSON Configuration</div>
+            </div>
+
+            <!-- The Homilies -->
+            <div class="card extension">
+                <div class="icon">⛪</div>
+                <h3>The Homilies</h3>
+                <p>A designated directory (`homilies/`) for dropping custom Python plugins (MODs). Merkabah dynamically loads and preaches these custom validation logics at startup.</p>
+                <div class="tech-stack">Dynamic Importlib</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

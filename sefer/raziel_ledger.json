@@ -1,0 +1,11 @@
+{
+    "banned_events": [
+        "os.system",
+        "subprocess.Popen",
+        "os.remove",
+        "os.rmdir",
+        "os.rename",
+        "socket.connect",
+        "urllib.Request"
+    ]
+}
