@@ -19,9 +19,16 @@ jobs:
         python-version: "3.11"
 
     - name: Install Dependencies
+      # [修正 2026-10] 以前は依存パッケージを `pip install pytest rsa` として
+      # ここに直接ハードコードしており、requirements.txtとの間でズレが発生
+      # していた(実機で発見: requests がテストスイートの一部で必要になった
+      # 際、ここへの追記が漏れ、tartarus/armageddon.py の `import requests`
+      # が原因で創造主ゲートのテストが ModuleNotFoundError でクラッシュして
+      # いた)。requirements.txt を単一の正として読み込むことで、このズレを
+      # 構造的に防ぐ。
       run: |
         python -m pip install --upgrade pip
-        pip install pytest rsa
+        pip install -r requirements.txt
 
     - name: Execute Sanctuary Verification
       run: |

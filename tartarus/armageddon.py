@@ -2,7 +2,6 @@
 import sys
 import time
 import subprocess
-import requests
 import hashlib
 import uuid
 from pathlib import Path
@@ -10,6 +9,16 @@ from pathlib import Path
 # =========================================================
 # THE TARTARUS SEAL: THE CREATOR'S BREATH
 # =========================================================
+# [脆弱性修正 2026-10] 以前はここで `import requests` をモジュール先頭で
+# 即時実行していたが、これは `_verify_creators_air()` の呼び出し(このすぐ下)
+# よりも先にPythonによって評価される。CI環境等で requests がインストール
+# されていない場合、このゲート本来の `sys.exit(666)` が一度も実行されず、
+# 代わりに ModuleNotFoundError による通常のクラッシュ(exit code 1)で
+# プロセスが終了してしまう(実機検証済み)。つまり「最重要防壁の信頼性が、
+# 無関係なサードパーティ依存の有無に左右される」という脆弱性だった。
+# requests は ask_ollama() でのみ実際に使用されるため、そこへ遅延import
+# することで、ゲート自体はrequestsの有無に関わらず常に最初に発火する
+# ようにした。
 COMMANDER_HASH = "466f54711c8649770242ce401c27fe69046d4b0a355285f2ecc0f769e0d3ba2f"
 
 def _verify_creators_air():
@@ -44,6 +53,7 @@ MODEL_NAME = "llama3.1:latest"
 
 
 def ask_ollama(prompt, system_prompt=""):
+    import requests  # [2026-10] 遅延import。理由は本ファイル冒頭のコメント参照。
     payload = {"model": MODEL_NAME, "prompt": prompt, "system": system_prompt, "stream": False}
     try:
         response = requests.post(OLLAMA_API, json=payload, timeout=300)

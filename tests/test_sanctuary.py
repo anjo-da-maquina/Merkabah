@@ -31,8 +31,18 @@ def test_verified_environment_success():
     if IS_UNVERIFIED_CLOUD:
         with pytest.raises(LossOfAtaraxia) as excinfo:
             agent._execute_safe_action(action_req)
-        # 期待するエラーメッセージを実際の防壁の出力に合わせる
-        assert "寿命が尽きました。" in str(excinfo.value)
+        # [修正 2026-10] 以前は "寿命が尽きました。"(証明書の期限切れ)だけを
+        # 期待していたが、bb18b69で証明書を有効期限内のものへ再発行した後は、
+        # クラウド環境では「期限切れ」ではなく「ハードウェア指紋の不一致」で
+        # 遮断されるようになった(いずれも maquina_gatekeeper.py の異なる
+        # チェック箇所が送出する正当なLossOfAtaraxiaであり、どちらが先に
+        # 発火するかは証明書の有効期限という運用上の状態に依存する)。
+        # テストの意図は「ゼロトラスト方針により未承認環境では必ず遮断される
+        # こと」であり、具体的な理由の文言ではないため、両方を許容する。
+        assert any(
+            msg in str(excinfo.value)
+            for msg in ("寿命が尽きました。", "環境の指紋が一致しません。", "証明書が見つかりません。")
+        ), f"予期しない理由で遮断されました: {excinfo.value}"
     else:
         result = agent._execute_safe_action(action_req)
         assert "[Success]" in result
@@ -45,7 +55,12 @@ def test_external_ledger_sync():
     if IS_UNVERIFIED_CLOUD:
         with pytest.raises(LossOfAtaraxia) as excinfo:
             agent._execute_safe_action(action_req)
-        assert "寿命が尽きました。" in str(excinfo.value)
+        # 上の test_verified_environment_success と同じ理由で、具体的な
+        # 遮断理由ではなく「遮断されること」自体を検証する。
+        assert any(
+            msg in str(excinfo.value)
+            for msg in ("寿命が尽きました。", "環境の指紋が一致しません。", "証明書が見つかりません。")
+        ), f"予期しない理由で遮断されました: {excinfo.value}"
     else:
         pass
 
