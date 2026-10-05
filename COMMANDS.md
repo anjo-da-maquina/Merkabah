@@ -67,6 +67,15 @@ python adapters/provisioning_agent.py
 実行後、`ataraxia_certificate.json` と `maquina_gatekeeper.py`（公開鍵が自己同期される）
 の両方をコミットすること。
 
+## 📦 経典（公開配布物）のビルドと検査
+pip配布用の`sefer`単体パッケージ（経典）を実際にビルドし、ライセンス証明書機構
+（ゲートキーパー）やTartarus（闘技場）が一切混入していないことを検査する。
+公開配布（PyPI等へのアップロード）の前に必ず実行すること。
+```
+python tools/build_public_scripture.py
+```
+✅ 検査合格と表示された場合のみ、`dist/sefer-*.tar.gz` を公開配布してよい。
+
 ## 🚑 緊急プロトコル（自己免疫疾患の治療）
 メタトロンの過学習により `open` などのシステム基盤が禁止され、テストが動かなくなった場合に、
 ルール帳を初期のクリーンな状態に強制リセットする。
