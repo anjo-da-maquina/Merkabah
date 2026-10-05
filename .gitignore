@@ -5,3 +5,4 @@ homilies/
 dist/
 build/
 *.egg-info/
+raziel_ledger_pending.json

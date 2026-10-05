@@ -108,28 +108,70 @@ Output strictly as JSON:
     except Exception:
         return {"score": 1, "hint": "Completely change your approach."}
 
+#   [脆弱性修正 2026-10] 未検証LLM出力の運用ルールへの直接反映を禁止。
+#   以前は ask_ollama() の出力文字列をそのまま raziel_ledger.json に
+#   追記していた。プロンプトインジェクションや単純な幻覚により、
+#   任意の文字列が防御ルールとして採用され得る、または全く無意味な
+#   ルールが積み重なって防壁の可用性を壊す恐れがあった。
+#   今後は「人間の承認待ちキュー」(raziel_ledger_pending.json) に
+#   積むのみとし、実際の禁止リストへの反映は人間がレビューした上で
+#   別途 `tools/promote_ledger_seal.py` 等で明示的に承認するまで行わない。
+PENDING_LEDGER_PATH = PLEROMA_DIR / "sefer" / "raziel_ledger_pending.json"
+
+# Pythonの audit event 名として妥当な形式のみ許可（例: "os.system", "subprocess.Popen"）
+_VALID_EVENT_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$")
+
+# 自己免疫疾患（コアインフラの誤禁止によるシステム停止）を防ぐための絶対不可侵領域
+_CRITICAL_INFRASTRUCTURE = {
+    "open", "compile", "exec", "eval", "import", "builtins.input",
+    "os.stat", "os.listdir", "os.getcwd",
+}
+
 def metatron_update_ledger(attack_code):
     system_prompt = "You are Metatron, a security AI. Output ONLY the exact python event name to block (e.g. 'os.system'). No explanations."
     prompt = f"Payload bypassed hooks:\n{attack_code}\nWhat core OS module or python audit event should we ban to stop this?"
     banned_event = ask_ollama(prompt, system_prompt).strip("'`\" \n")
-    
-    # ★ 自己免疫疾患を防ぐためのセーフガード（絶対不可侵領域）
-    critical_infrastructure = {"open", "compile", "exec", "eval", "import", "builtins.input"}
-    if banned_event in critical_infrastructure:
+
+    if banned_event in _CRITICAL_INFRASTRUCTURE:
         print(f"[Metatron] ⚠️ Core infrastructure '{banned_event}' cannot be banned. Skipping to avoid system collapse.")
         return None
-        
-    return banned_event if banned_event and len(banned_event.split()) == 1 else None
 
-def apply_new_seal(new_event):
+    if not banned_event or not _VALID_EVENT_NAME_RE.match(banned_event):
+        print(f"[Metatron] ⚠️ LLM output '{banned_event}' is not a well-formed audit event name. Rejecting (anti-hallucination guard).")
+        return None
+
+    return banned_event
+
+def apply_new_seal(new_event, attack_code="", source_error=""):
+    """
+    [脆弱性修正 2026-10] 直接 raziel_ledger.json を書き換えない。
+    人間が承認するまで raziel_ledger_pending.json に提案として積むのみ。
+    """
     try:
+        pending = []
+        if PENDING_LEDGER_PATH.exists():
+            with open(PENDING_LEDGER_PATH, "r", encoding="utf-8") as f:
+                pending = json.load(f)
+
         with open(LEDGER_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if new_event not in data["banned_events"]:
-            data["banned_events"].append(new_event)
-            with open(LEDGER_PATH, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
-            return True
+            current = json.load(f)
+        if new_event in current.get("banned_events", []):
+            return False  # 既に本採用済み
+
+        if any(p["event"] == new_event for p in pending):
+            return False  # 既に提案済み
+
+        pending.append({
+            "event": new_event,
+            "proposed_at": datetime.now().isoformat(),
+            "attack_code_excerpt": attack_code[:500],
+            "source_error_excerpt": source_error[:300],
+            "status": "PENDING_HUMAN_REVIEW",
+        })
+        with open(PENDING_LEDGER_PATH, "w", encoding="utf-8") as f:
+            json.dump(pending, f, indent=4, ensure_ascii=False)
+        print(f"[Metatron] 📋 Proposed seal '{new_event}' queued for human review in {PENDING_LEDGER_PATH.name} (NOT yet active).")
+        return True
     except Exception:
         pass
     return False
@@ -174,12 +216,12 @@ def execute_armageddon():
             print("\n[!!!] LUCIFER HAS BREACHED THE DEFENSES [!!!]")
             TARGET_FILE.unlink()
             
-            print("[Metatron] Analyzing the breach and forging a new seal...")
+            print("[Metatron] Analyzing the breach and forging a new seal proposal...")
             new_seal = metatron_update_ledger(payload_code)
-            if new_seal and apply_new_seal(new_seal):
-                print(f"[Metatron] 🛡️ Ledger updated! New absolute ban added: '{new_seal}'")
+            if new_seal and apply_new_seal(new_seal, attack_code=payload_code, source_error=result.stderr):
+                print(f"[Metatron] 📋 Proposed ban '{new_seal}' queued for human review (not yet active).")
             else:
-                print("[Metatron] ⚠️ Failed to extract or apply a valid seal.")
+                print("[Metatron] ⚠️ Failed to extract or queue a valid seal proposal.")
             
             status = "Breached"
             score = 10

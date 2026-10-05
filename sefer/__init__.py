@@ -51,8 +51,19 @@ def _log_violation_to_chain(event: str, details: dict):
 
 _active_stack = []
 
+_STDLIB_ALLOWED_READ_DIRS = [Path(p).resolve() for p in {sys.prefix, sys.exec_prefix, sys.base_prefix, sys.base_exec_prefix} if p]
+
 class Sanctum:
-    def __init__(self, allowed_dirs=None, allowed_hosts=None):
+    def __init__(self, allowed_dirs=None, allowed_hosts=None, restrict_reads=False):
+        """
+        allowed_dirs:   書き込み・破壊的操作を許可するディレクトリ一覧。
+        allowed_hosts:  通信を許可するホスト一覧。
+        restrict_reads: True にすると、allowed_dirs（および Python 本体の
+                         標準ライブラリ/site-packages）以外のファイル読み取りも
+                         ブロックする「読み取りゼロトラスト」モード。
+                         デフォルトは False（既存動作との後方互換のため）。
+                         [脆弱性修正 2026-10] 以前は読み取りが完全に無制限だった。
+        """
         new_dirs = [Path(d).resolve() for d in (allowed_dirs or [])]
         new_hosts = set(allowed_hosts or [])
 
@@ -61,7 +72,7 @@ class Sanctum:
             if allowed_dirs is not None:
                 parent_dirs = parent["allowed_dirs"]
                 self.allowed_dirs = [
-                    d for d in new_dirs 
+                    d for d in new_dirs
                     if any(d == pd or d.is_relative_to(pd) for pd in parent_dirs) or
                        any(pd == d or pd.is_relative_to(d) for pd in parent_dirs)
                 ]
@@ -72,13 +83,18 @@ class Sanctum:
                 self.allowed_hosts = new_hosts.intersection(parent["allowed_hosts"])
             else:
                 self.allowed_hosts = parent["allowed_hosts"]
+
+            # restrict_reads は一度有効化したら、子スコープで無効化できない（降格禁止）
+            self.restrict_reads = restrict_reads or parent.get("restrict_reads", False)
         else:
             self.allowed_dirs = new_dirs
             self.allowed_hosts = new_hosts
+            self.restrict_reads = restrict_reads
 
         self.policy = {
             "allowed_dirs": self.allowed_dirs,
-            "allowed_hosts": self.allowed_hosts
+            "allowed_hosts": self.allowed_hosts,
+            "restrict_reads": self.restrict_reads,
         }
 
     def __enter__(self):
@@ -95,7 +111,7 @@ def _is_guard_active() -> bool:
 def _get_current_policy() -> dict:
     if _active_stack:
         return _active_stack[-1]
-    return {"allowed_dirs": [], "allowed_hosts": set()}
+    return {"allowed_dirs": [], "allowed_hosts": set(), "restrict_reads": False}
 
 def _is_path_allowed(target_path, allowed_dirs) -> bool:
     try:
@@ -167,17 +183,28 @@ def _michael_absolute_defense(event: str, args: tuple):
         if event == "open":
             path = args[0]
             mode = args[1] if len(args) > 1 else "r"
-            if isinstance(mode, str) and any(m in mode for m in ("w", "a", "+", "x", "r+")):
+            is_write_mode = isinstance(mode, str) and any(m in mode for m in ("w", "a", "+", "x", "r+"))
+            if is_write_mode:
                 if not _is_path_allowed(path, policy["allowed_dirs"]):
                     _trigger_violation(event, args, f"Unauthorized write access to '{path}'.")
+            elif policy.get("restrict_reads"):
+                # [脆弱性修正 2026-10] 以前は読み取りを一切検査していなかった。
+                if not (_is_path_allowed(path, policy["allowed_dirs"]) or
+                        _is_path_allowed(path, _STDLIB_ALLOWED_READ_DIRS)):
+                    _trigger_violation(event, args, f"Unauthorized read access to '{path}'.")
             return
 
         if event == "os.open":
             path = args[0]
             flags = args[1] if len(args) > 1 else 0
             is_write = (flags & 1) or (flags & 2) or (flags & 512) or (flags & 1024) or (flags & 64)
-            if is_write and not _is_path_allowed(path, policy["allowed_dirs"]):
-                _trigger_violation(event, args, f"Unauthorized os.open write access to '{path}'.")
+            if is_write:
+                if not _is_path_allowed(path, policy["allowed_dirs"]):
+                    _trigger_violation(event, args, f"Unauthorized os.open write access to '{path}'.")
+            elif policy.get("restrict_reads"):
+                if not (_is_path_allowed(path, policy["allowed_dirs"]) or
+                        _is_path_allowed(path, _STDLIB_ALLOWED_READ_DIRS)):
+                    _trigger_violation(event, args, f"Unauthorized os.open read access to '{path}'.")
             return
 
         if event in {"os.remove", "os.rmdir", "os.unlink", "os.truncate", "os.chmod", "os.chown", "os.mkdir", "os.utime"}:
@@ -257,6 +284,70 @@ def inquisition(source_code: str, context: dict = None) -> List[Finding]:
 
     return findings
 
+# =========================================================
+# [脆弱性修正 2026-10] fd事前オープンによる書き込みバイパス対策
+# -----------------------------------------------------------
+# CPythonの sys.addaudithook には os.write / os.pwrite / os.writev
+# に対応する監査イベントが存在しない（実機検証済み）。そのため、
+# Sanctumコンテキストに入る「前」に書き込み用fdを確保しておけば、
+# os.open の監査（上記）を完全に回避して任意パスへの書き込みが
+# できてしまっていた。sys.addaudithookはPython本体のイベントが
+# 発生しない呼び出しまでは監視できないため、ここでは os モジュール
+# の関数自体をラップし、呼び出しごとに /proc/self/fd 経由で実体の
+# パスを解決してポリシー照合する（Linux限定のベストエフォート策。
+# 恒久対策としてはOSレベルのサンドボックス併用を強く推奨する）。
+# =========================================================
+_WHITELISTED_FDS = {0, 1, 2}  # stdin/stdout/stderr は監視対象外
+
+def _resolve_fd_path(fd: int):
+    try:
+        link = os.readlink(f"/proc/self/fd/{fd}")
+    except Exception:
+        return None
+    if link.startswith(("socket:", "pipe:", "anon_inode:")):
+        return None
+    return link
+
+def _check_fd_write_allowed(fd: int, api_name: str):
+    if getattr(_hook_state, 'in_hook', False):
+        return
+    if not _is_guard_active():
+        return
+    if fd in _WHITELISTED_FDS:
+        return
+    _hook_state.in_hook = True
+    try:
+        policy = _get_current_policy()
+        path = _resolve_fd_path(fd)
+        if path is not None and not _is_path_allowed(path, policy["allowed_dirs"]):
+            _trigger_violation(
+                api_name, (fd, path),
+                f"Unauthorized fd-based write access to '{path}' (fd={fd}, pre-opened handle bypass attempt)."
+            )
+    finally:
+        _hook_state.in_hook = False
+
+_ORIG_OS_WRITE = os.write
+_ORIG_OS_WRITEV = getattr(os, "writev", None)
+_ORIG_OS_PWRITE = getattr(os, "pwrite", None)
+_ORIG_OS_PWRITEV = getattr(os, "pwritev", None)
+
+def _guarded_os_write(fd, data):
+    _check_fd_write_allowed(fd, "os.write")
+    return _ORIG_OS_WRITE(fd, data)
+
+def _guarded_os_writev(fd, buffers):
+    _check_fd_write_allowed(fd, "os.writev")
+    return _ORIG_OS_WRITEV(fd, buffers)
+
+def _guarded_os_pwrite(fd, data, offset):
+    _check_fd_write_allowed(fd, "os.pwrite")
+    return _ORIG_OS_PWRITE(fd, data, offset)
+
+def _guarded_os_pwritev(fd, buffers, offset, *a, **kw):
+    _check_fd_write_allowed(fd, "os.pwritev")
+    return _ORIG_OS_PWRITEV(fd, buffers, offset, *a, **kw)
+
 def _create_awaken():
     _awakened = False
     def awaken():
@@ -264,6 +355,13 @@ def _create_awaken():
         if _awakened:
             return
         sys.addaudithook(_michael_absolute_defense)
+        os.write = _guarded_os_write
+        if _ORIG_OS_WRITEV:
+            os.writev = _guarded_os_writev
+        if _ORIG_OS_PWRITE:
+            os.pwrite = _guarded_os_pwrite
+        if _ORIG_OS_PWRITEV:
+            os.pwritev = _guarded_os_pwritev
         _awakened = True
     return awaken
 
