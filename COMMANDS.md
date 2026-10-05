@@ -34,6 +34,28 @@ python tools/promote_ledger_seal.py --approve <event名>
 python tools/promote_ledger_seal.py --reject  <event名>
 ```
 
+## 🔭 外部脅威インテリジェンス取り込み（Merkabah）
+Gemini APIキーを `GEMINI_API_KEY` 環境変数に設定した上で、外界の脅威情報を取得し
+防壁ルールの更新を提案させる。Armageddonと同様、ラジエル（Gemini）の出力は
+人間承認なしに `shield_rules.json` へは反映されず、`sefer/shield_rules_pending.json`
+に提案としてキューイングされるのみ。
+
+```
+python src/angelic_shield.py [脅威名（省略可）]
+```
+
+### 承認待ちルールの確認・昇格
+```
+python tools/promote_shield_seal.py --list
+python tools/promote_shield_seal.py --approve "<vulnerability_name>"
+python tools/promote_shield_seal.py --reject  "<vulnerability_name>"
+```
+
+承認済みの `shield_rules.json` に対して、対象ファイルを静的に審問する。
+```
+python src/kamael_judgment.py <対象ファイル>
+```
+
 ## 🛡 絶対防壁の健全性証明（テストスイート）
 Sefer（天界の防壁）のすべての機能が正常に稼働しているかを確認する。ALL GREEN (PASSED) であることを証明する。
 ```

@@ -144,6 +144,16 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### I. 外部脅威インテリジェンス取り込み系（Merkabah）の削除と再構築
+
+2026-10のセルフレビューで、Gemini経由の外部脅威情報取り込みに関する3ファイル(`src/oracle_feed.py`, `src/gemini_oracle_feed.py`, `src/angelic_shield.py`+`src/kamael_judgment.py`)に問題が見つかった。判断は機能の重複度合いによって二分した。
+
+\*\*削除: `oracle_feed.py` / `gemini_oracle_feed.py`\*\* — 両ファイルは`src/secure_oracle_feed.py`（`GEMINI_API_KEY`を`os.environ.pop()`で即時消去し、`EconomicDefenseLimiter`・`AegisSystem`・`EvolvingAngel`を統合した上位互換版）に完全に機能面で上書きされていた死んだ重複コードであり、作り直す価値がなかった。削除した。
+
+\*\*再構築: `angelic_shield.py` / `kamael_judgment.py`\*\* — この2ファイルが組み合わせて提供する「外部の脅威インテリジェンス(Gemini経由)を取り込み、独自ASTスキャナ(`KamaelInquisitor`)のルールに反映する」機能自体は、Armageddon(Ollamaによる内部自己対戦進化)とは別系統の独自の価値ある機能であり、単純削除すると機能が失われるため作り直した。修正点は3つ。(1) 独自実装の弱い`metatrons_seal`(`sys.addaudithook`)が、実行を一切行わない静的解析・JSON読み書きのみのファイル群に対して「OSレベルで保護されている」かのような誤解を招く表示をしていたため撤去した。本当にOSレベルの保護が必要な箇所(AI生成コードの実行)は`sefer.Sanctum`/`AegisSystem`が担い、本ファイル群はその代替ではない。(2) `ZadkielDominion`がLLMの生出力を人間承認なしに`shield_rules.json`へ直接反映していた（Armageddonの`raziel_ledger_pending.json`で既に修正した同種の脆弱性）。`sefer/shield_rules_pending.json`への提案キューイングと、`tools/promote_shield_seal.py`による人間の明示的承認を経てからの反映に変更した。(3) `KamaelInquisitor`が`sefer.inquisition()`(Gabriel)と同じドット付き完全修飾名の検知漏れを抱えていた（`"os.system"`のような`blocked_functions`エントリに、呼び出し式のバレ属性名`"system"`が一致しなかった）。Gabrielの修正(§E)と同一のロジックで完全修飾名を復元し照合するようにした。`angels/zadkiel_shield_decree.py`がこれら3点の再発を静的に検知し、`tests/test_shield_rebuild.py`が動作を実機検証する。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
