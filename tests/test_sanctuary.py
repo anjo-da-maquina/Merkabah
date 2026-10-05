@@ -11,9 +11,10 @@ class DummyExecutor:
     def _execute_safe_action(self, action_req):
         return "[Success] Action completed"
 
-# 寿命超過により正常系でも防壁が作動（LossOfAtaraxia）するため、厳密なXFAILとして扱う。
-# これにより、NameError等の意図しないバグが発生した場合は「想定外の例外」として正しくFAILになる。
+# XFAILはローカル環境（寿命超過による失敗）でのみ有効にし、
+# クラウド環境では「正しく防壁が弾くことを確認する正常なテスト」として扱う
 @pytest.mark.xfail(
+    condition=not IS_UNVERIFIED_CLOUD,
     raises=LossOfAtaraxia, 
     strict=True, 
     reason="Anjo da maquina intervention (Lifespan exhausted) is an expected ultimate defense"
@@ -44,7 +45,6 @@ def test_external_ledger_sync():
     if IS_UNVERIFIED_CLOUD:
         with pytest.raises(LossOfAtaraxia) as excinfo:
             agent._execute_safe_action(action_req)
-        # 期待するエラーメッセージを実際の防壁の出力に合わせる
         assert "寿命が尽きました。" in str(excinfo.value)
     else:
         pass
