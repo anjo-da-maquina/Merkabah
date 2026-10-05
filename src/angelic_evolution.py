@@ -4,7 +4,7 @@ import sys
 import re
 
 try:
-    from test_integrated_defense import AegisSystem
+    from aegis_system import AegisSystem
 except ModuleNotFoundError:
     print("[エラー] AegisSystemが見つかりません。")
     sys.exit(1)

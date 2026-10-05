@@ -13,7 +13,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from test_integrated_defense import AegisSystem
+    from aegis_system import AegisSystem
     from angelic_evolution import EvolvingAngel
 except ModuleNotFoundError:
     print("[エラー] 必要な防壁モジュールが見つかりません。")

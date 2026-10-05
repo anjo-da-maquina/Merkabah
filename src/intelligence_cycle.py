@@ -6,7 +6,7 @@ import ollama
 import time
 
 try:
-    from test_integrated_defense import AegisSystem
+    from aegis_system import AegisSystem
     from angelic_evolution import EvolvingAngel
     from deadmans_switch import CollarProtocol
 except ModuleNotFoundError:

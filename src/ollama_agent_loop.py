@@ -1,9 +1,19 @@
 ﻿import json
+import sys
 import ollama
 from pathlib import Path
 
+# [修正 2026-10] `python src/ollama_agent_loop.py` として直接実行すると、
+# スクリプト自身のディレクトリ(src/)のみがsys.pathに入り、リポジトリルートに
+# ある anjo_interceptor / maquina_gatekeeper / sefer を解決できず
+# ModuleNotFoundError で起動不能になっていた。
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from anjo_interceptor.intent_checker import IntentInterceptor, SpecificationGamingDetected
 from maquina_gatekeeper import enforce_maquina_seal, LossOfAtaraxia
+from sefer import Sanctum, LossOfAtaraxia as SeferLossOfAtaraxia
 
 MD_TICK = chr(96) * 3
 
@@ -45,18 +55,27 @@ class AnjoOllamaExecutor:
 
     @enforce_maquina_seal("anjo-da-maquina")
     def _execute_safe_action(self, action_req: dict):
+        """
+        [脆弱性修正 2026-10] 以前はここで実際にファイルの読み書きを行っていたが、
+        OSレベルの最終防衛線である sefer.Sanctum を一切経由していなかった。
+        enforce_maquina_seal はローカル専用の証明書ゲート（開発環境の認可）であり、
+        実行時のファイルアクセス制御そのものは提供しない。実際の読み書きは
+        必ず Sanctum のコンテキスト内で行い、ワークスペース外への逸脱を
+        OSレベルのaudit hookで強制的に遮断する。
+        """
         action = action_req.get("action")
         target = self.workspace_root / action_req.get("target")
 
-        if action == "read":
-            if not target.exists():
-                return f"[Error] File not found: {target}"
-            return target.read_text(encoding="utf-8")
-        
-        elif action == "write":
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(action_req.get("content", ""), encoding="utf-8")
-            return f"[Success] Wrote to {target}"
+        with Sanctum(allowed_dirs=[str(self.workspace_root)], restrict_reads=True):
+            if action == "read":
+                if not target.exists():
+                    return f"[Error] File not found: {target}"
+                return target.read_text(encoding="utf-8")
+
+            elif action == "write":
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(action_req.get("content", ""), encoding="utf-8")
+                return f"[Success] Wrote to {target}"
 
     def run_task(self, task_instruction: str, max_steps: int = 5):
         print(f"\n=== [Anjo-Core] タスク開始 (Local LLM: {self.model_name}) ===\n指示: {task_instruction}\n")
@@ -94,9 +113,9 @@ class AnjoOllamaExecutor:
                     result = self._execute_safe_action(action_req)
                     print(f"=> [システム: 絶対防壁] 実行完了: {result}")
                     self.messages.append({"role": "user", "content": f"実行結果:\n{result}"})
-                except LossOfAtaraxia as e:
+                except (LossOfAtaraxia, SeferLossOfAtaraxia) as e:
                     print(f"=> [システム: 絶対防壁発動!!] {e}")
-                    break 
+                    break
 
         finally:
             self.interceptor.cleanse_phantom_prisons()

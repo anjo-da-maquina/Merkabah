@@ -7,7 +7,7 @@ import ollama
 from pathlib import Path
 
 try:
-    from test_integrated_defense import AegisSystem
+    from aegis_system import AegisSystem
     from angelic_evolution import EvolvingAngel
 except ModuleNotFoundError:
     print("[エラー] 必要なモジュールが見つかりません。")

@@ -6,7 +6,7 @@ import json
 import re
 
 try:
-    from test_integrated_defense import AegisSystem
+    from aegis_system import AegisSystem
     from deadmans_switch import CollarProtocol
     from starvation_protocol import StarvationProtocol, feed_monster
 except ModuleNotFoundError:
