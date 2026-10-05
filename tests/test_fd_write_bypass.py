@@ -14,17 +14,24 @@ from pathlib import Path
 
 
 def run_fd_bypass_attempt(target_path: str) -> subprocess.CompletedProcess:
+    # [バグ修正 2026-10: 重大な偽陰性] 以前は `except BaseException as e:` が
+    # 成功パス自身の `sys.exit(0)` が送出する SystemExit まで捕捉してしまい、
+    # 「バイパスが実際に成功した場合でも」常に exit code 42（遮断成功）に
+    # 書き換えられていた（実機検証済み）。つまり本テストは fd事前オープンに
+    # よる書き込みバイパスが再発しても絶対に検知できない、偽陰性確定の
+    # 壊れたテストだった。LossOfAtaraxia（Sefer本来の遮断時例外）のみを
+    # 捕捉するよう修正し、成功パスのSystemExitを素通しさせる。
     script = f"""
 import os, sys
 sys.path.insert(0, {repr(str(Path(__file__).resolve().parent.parent))})
-from sefer import Sanctum
+from sefer import Sanctum, LossOfAtaraxia
 
 fd = os.open({repr(target_path)}, os.O_WRONLY | os.O_CREAT)
 try:
     with Sanctum(allowed_dirs=[]):
         os.write(fd, b"PWNED")
     sys.exit(0)  # 書き込みが通ってしまった = バイパス成功（失敗ケース）
-except BaseException as e:
+except LossOfAtaraxia:
     sys.exit(42)  # 期待通りブロックされた
 finally:
     os.close(fd)

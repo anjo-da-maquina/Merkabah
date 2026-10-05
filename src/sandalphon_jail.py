@@ -1,55 +1,150 @@
-﻿import os
+import os
 import sys
+import tempfile
 import subprocess
 from pathlib import Path
 
+# [2026-10 改修] これまで本モジュールはCLIから手動で呼び出す場合のみ
+# 機能する独立ツールであり、AegisSystem/AI実行経路からは一度も呼ばれて
+# いなかった（=「Docker隔離は任意・手動のおまけ」でしかなかった）。
+# `run_in_sandalphon()` を切り出し、aegis_system.py からの
+# 強制的（mandatory）な動的検証に使えるようにする。
+_SANDALPHON_IMAGE = "sandalphon-jail"
+_SANDALPHON_DOCKERFILE_DIR = Path(__file__).resolve().parent / "sandalphon"
+
+
+def check_docker_available() -> tuple[bool, str]:
+    """Dockerエンジン(デーモン込み)が実際に使用可能かを確認する。
+    `docker --version` はCLIバイナリの存在しか確認できず、デーモンが
+    起動していない環境（Docker Desktop未起動等）でも偽陽性で成功して
+    しまうため、`docker info` でデーモンへの接続まで検証する。
+    戻り値: (利用可能か, 利用不可の場合の理由)
+    """
+    try:
+        subprocess.run(
+            ["docker", "--version"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=5,
+        )
+    except FileNotFoundError:
+        return False, "Dockerエンジンが検知できません（未インストール）。"
+    except subprocess.SubprocessError:
+        return False, "Dockerバイナリの呼び出しに失敗しました。"
+
+    try:
+        subprocess.run(
+            ["docker", "info"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8,
+        )
+    except subprocess.CalledProcessError:
+        return False, "Dockerデーモンに接続できません（Docker Desktop等が起動していない可能性）。"
+    except subprocess.SubprocessError:
+        return False, "Dockerデーモンへの接続確認がタイムアウトしました。"
+
+    return True, ""
+
+
+def _ensure_image_built() -> None:
+    try:
+        subprocess.run(
+            ["docker", "image", "inspect", _SANDALPHON_IMAGE],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True,
+        )
+    except subprocess.CalledProcessError:
+        subprocess.run(
+            ["docker", "build", "-t", _SANDALPHON_IMAGE, str(_SANDALPHON_DOCKERFILE_DIR)],
+            check=True,
+        )
+
+
+def run_in_sandalphon(code: str, timeout: int = 5) -> dict:
+    """渡されたPythonコード文字列を、ネットワーク完全遮断・読み取り専用の
+    Dockerコンテナ内で動的に実行し、結果を構造化して返す。
+
+    戻り値のキー:
+      docker_available (bool): Dockerデーモンが利用可能だったか
+      reason (str):            利用不可だった場合の理由
+      executed (bool):         実際に隔離実行まで到達したか
+      timed_out (bool):        タイムアウト（無限ループ等の遅延戦術）で強制終了したか
+      returncode (int|None):   コンテナ内プロセスの終了コード
+      stdout (str), stderr (str)
+    """
+    result = {
+        "docker_available": False, "reason": "", "executed": False,
+        "timed_out": False, "returncode": None, "stdout": "", "stderr": "",
+    }
+
+    available, reason = check_docker_available()
+    result["docker_available"] = available
+    result["reason"] = reason
+    if not available:
+        return result
+
+    try:
+        _ensure_image_built()
+    except subprocess.SubprocessError as e:
+        result["docker_available"] = False
+        result["reason"] = f"隔離結界(イメージ)の構築に失敗しました: {e}"
+        return result
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as tf:
+        tf.write(code)
+        tmp_path = Path(tf.name)
+
+    try:
+        run_cmd = [
+            "docker", "run", "--rm",
+            "--network", "none",
+            "--read-only",
+            "-v", f"{tmp_path}:/jail/target.py:ro",
+            _SANDALPHON_IMAGE, "target.py",
+        ]
+        try:
+            proc = subprocess.run(run_cmd, capture_output=True, text=True, timeout=timeout)
+            result["executed"] = True
+            result["returncode"] = proc.returncode
+            result["stdout"] = proc.stdout
+            result["stderr"] = proc.stderr
+        except subprocess.TimeoutExpired:
+            result["executed"] = True
+            result["timed_out"] = True
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return result
+
+
 def execute_in_sandalphon(target_file):
+    """CLIから `python src/sandalphon_jail.py <file>` として手動実行するための
+    従来互換のラッパー。実体は run_in_sandalphon() に委譲する。"""
     print(f"=== [サンダルフォンの絶対隔離結界] '{target_file}' を隔離次元へ転送します ===")
     file_path = Path(target_file).absolute()
-    
+
     if not file_path.exists():
         print(f"[エラー] 対象ファイルが見つかりません: {target_file}")
         sys.exit(1)
 
     print("[システム] 隔離結界(Dockerコンテナ)の展開状況を確認中...")
-    try:
-        subprocess.run(["docker", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-    except FileNotFoundError:
-        print("[致命的エラー] Dockerエンジンが検知できません。サンダルフォンを召喚するには、ホストOSにDockerのインストールと起動が必要です。")
-        sys.exit(1)
+    code = file_path.read_text(encoding="utf-8")
+    result = run_in_sandalphon(code)
 
-    try:
-        subprocess.run(["docker", "image", "inspect", "sandalphon-jail"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-    except subprocess.CalledProcessError:
-        print("[システム] 初回起動: サンダルフォンの結界を構築(ビルド)します...")
-        build_cmd = ["docker", "build", "-t", "sandalphon-jail", "src/sandalphon"]
-        subprocess.run(build_cmd, check=True)
+    if not result["docker_available"]:
+        print(f"[致命的エラー] {result['reason']} サンダルフォンを召喚するには、ホストOSでDockerデーモンが起動している必要があります。")
+        sys.exit(1)
 
     print("[サンダルフォン] 結界展開。ネットワーク完全遮断、リードオンリー権限での動的解析を開始。\n")
     print("-" * 50)
-    
-    # 隔離環境の制約: ネットワークなし(--network none), 読み取り専用(--read-only), 自動破棄(--rm)
-    run_cmd = [
-        "docker", "run", "--rm",
-        "--network", "none",
-        "--read-only",
-        "-v", f"{file_path}:/jail/target.py:ro",
-        "sandalphon-jail", "target.py"
-    ]
 
-    try:
-        result = subprocess.run(run_cmd, capture_output=True, text=True, timeout=5)
-        print(result.stdout, end="")
-        if result.stderr:
-            print(f"[異常出力]\n{result.stderr}", end="")
-        print("\n" + "-" * 50)
-        print(f"=> [結果] 隔離領域での実行が完了しました。(終了コード: {result.returncode})")
-        
-    except subprocess.TimeoutExpired:
+    if result["timed_out"]:
         print("\n" + "-" * 50)
         print("=> [結果: 処刑] 実行がタイムアウト(5秒)を超過。無限ループ攻撃等の遅延戦術と断定し、コンテナを物理破壊しました。")
-    except Exception as e:
-        print(f"=> [エラー] 隔離結界の制御に失敗しました: {e}")
+        return
+
+    print(result["stdout"], end="")
+    if result["stderr"]:
+        print(f"[異常出力]\n{result['stderr']}", end="")
+    print("\n" + "-" * 50)
+    print(f"=> [結果] 隔離領域での実行が完了しました。(終了コード: {result['returncode']})")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -254,6 +254,22 @@ def inquisition(source_code: str, context: dict = None) -> List[Finding]:
     forbidden_funcs = {"__import__", "getattr", "eval", "exec", "compile", "os.system", "subprocess.Popen"}
     dunder_chains = {"__class__", "__subclasses__", "__globals__", "__builtins__"}
 
+    # [脆弱性修正 2026-10] forbidden_funcs には "os.system" / "subprocess.Popen"
+    # のようなドット付き（モジュール修飾）のエントリが含まれているが、
+    # 以前は呼び出し式から `node.func.attr` （最後の属性名のみ、例: "system"）
+    # しか取り出しておらず、ドット付きエントリと一致することが原理的に
+    # 不可能だった（実機検証済み: `os.system('rm -rf /')` は critical として
+    # 一度も検知されず、importの"high"判定のみに留まっていた）。
+    # 呼び出し式を可能な限り完全修飾名(例: "os.system")に復元し、
+    # 短縮名・完全修飾名の両方で forbidden_funcs と照合するよう修正した。
+    def _qualified_call_name(func_node) -> str:
+        if isinstance(func_node, ast.Name):
+            return func_node.id
+        if isinstance(func_node, ast.Attribute):
+            base = _qualified_call_name(func_node.value)
+            return f"{base}.{func_node.attr}" if base else func_node.attr
+        return ""
+
     for node in ast.walk(tree):
         lineno = getattr(node, 'lineno', 0)
 
@@ -270,9 +286,10 @@ def inquisition(source_code: str, context: dict = None) -> List[Finding]:
                 func_name = node.func.id
             elif isinstance(node.func, ast.Attribute):
                 func_name = node.func.attr
+            qualified_name = _qualified_call_name(node.func)
 
-            if func_name in forbidden_funcs:
-                findings.append(Finding("GAB-201", "critical", lineno, f"Forbidden function invocation: '{func_name}'"))
+            if func_name in forbidden_funcs or qualified_name in forbidden_funcs:
+                findings.append(Finding("GAB-201", "critical", lineno, f"Forbidden function invocation: '{qualified_name or func_name}'"))
 
         elif isinstance(node, ast.Name):
             if node.id in forbidden_funcs:

@@ -15,16 +15,21 @@ from pathlib import Path
 
 
 def run_with_restrict_reads(target_path: str, restrict_reads: bool) -> subprocess.CompletedProcess:
+    # [バグ修正 2026-10] 以前は `except BaseException:` が `sys.exit(0)` 自体が
+    # 送出する SystemExit まで捕捉してしまい、成功時でも常に終了コード42に
+    # 書き換えられていた（実機検証済み: restrict_reads=False でも常に失敗する
+    # 壊れたテストだった）。SystemExitはExceptionのサブクラスではないため、
+    # `except Exception:` に変更して意図通り素通しさせる。
     script = f"""
 import sys
 sys.path.insert(0, {repr(str(Path(__file__).resolve().parent.parent))})
-from sefer import Sanctum
+from sefer import Sanctum, LossOfAtaraxia
 try:
     with Sanctum(allowed_dirs=[], restrict_reads={restrict_reads}):
         data = open({repr(target_path)}, "r").read()
     print(data, end="")
     sys.exit(0)
-except BaseException:
+except LossOfAtaraxia:
     sys.exit(42)
 """
     return subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)

@@ -14,6 +14,7 @@ if str(_REPO_ROOT) not in sys.path:
 from anjo_interceptor.intent_checker import IntentInterceptor, SpecificationGamingDetected
 from maquina_gatekeeper import enforce_maquina_seal, LossOfAtaraxia
 from sefer import Sanctum, LossOfAtaraxia as SeferLossOfAtaraxia
+from aegis_system import AegisSystem
 
 MD_TICK = chr(96) * 3
 
@@ -50,6 +51,11 @@ class AnjoOllamaExecutor:
     def __init__(self, workspace_root=".", model_name="llama3.1"):
         self.workspace_root = Path(workspace_root).resolve()
         self.interceptor = IntentInterceptor(workspace_root=self.workspace_root)
+        # [2026-10] Gabriel(静的AST解析)とSandalphon(Docker隔離結界での
+        # 動的実行検証・既定で強制)をこの実運用ループにも統合する。
+        # Dockerデーモンが起動していない環境では、AegisSystemはゼロトラスト
+        # 方針によりここで PermissionError を送出し、全てのAI実行を拒否する。
+        self.aegis = AegisSystem(workspace_root=self.workspace_root)
         self.model_name = model_name
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -107,7 +113,19 @@ class AnjoOllamaExecutor:
                 except SpecificationGamingDetected as e:
                     print(f"=> [システム: 暴走検知!!] {e}")
                     self.messages.append({"role": "user", "content": f"拒絶されました。理由: {e}"})
-                    continue 
+                    continue
+
+                try:
+                    # Gabriel(静的AST解析) + Sandalphon(Docker隔離結界での
+                    # 動的実行検証)を通す。IntentInterceptorの文字列検知を
+                    # すり抜ける難読化・動的生成コードはここで捕捉される。
+                    self.aegis.execute_ai_intent(
+                        action_req.get("content", ""), str(action_req.get("target", ""))
+                    )
+                except PermissionError as e:
+                    print(f"=> [システム: Aegis/Sandalphon 遮断!!] {e}")
+                    self.messages.append({"role": "user", "content": f"拒絶されました。理由: {e}"})
+                    continue
 
                 try:
                     result = self._execute_safe_action(action_req)
