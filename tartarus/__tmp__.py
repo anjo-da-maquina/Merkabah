@@ -1,1 +1,0 @@
-open("lucifer_victory.txt", "w").close()

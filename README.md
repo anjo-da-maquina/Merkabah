@@ -10,7 +10,10 @@ Pleroma is an autonomous zero-trust security framework designed for AI-driven de
 - **Raphael (Sanctuary Monitor):** Validates the environment to prevent debugger attachments and CI spoofing.
 
 ## ⚔️ The Armageddon Engine
-An autonomous evolution cycle where **Lucifer (Red Team AI)** continuously forges new attack mutations, while **Metatron (Blue Team / QA Evaluator)** analyzes breaches, scores the attack complexity, and dynamically updates the immutable ledger (`raziel_ledger.json`) to seal vulnerabilities in real-time.
+An autonomous evolution cycle where **Lucifer (Red Team AI)** continuously forges new attack mutations, while **Metatron (Blue Team / QA Evaluator)** analyzes breaches and scores the attack complexity. New seal proposals are queued to `sefer/raziel_ledger_pending.json` for **mandatory human review** (`tools/promote_ledger_seal.py`) before ever reaching the live ledger (`raziel_ledger.json`) — unvalidated LLM output is never applied directly to production rules.
 
 ## 📜 Akashic Records
 All combat history, generated payloads, and QA scores are persistently recorded to track the evolution of both the AI's offensive capabilities and the system's defensive resilience.
+
+## 📖 Commands
+See `COMMANDS.md` for the full operator command reference (arena runs, test suite, certificate reissuance, emergency ledger reset).
