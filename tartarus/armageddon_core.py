@@ -1,0 +1,123 @@
+﻿"""
+tartarus/armageddon_core.py
+============================
+[テスト容易性改善 2026-10] armageddon.py は起動直後に `_verify_creators_air()`
+（創造主のMACアドレスのハッシュ照合）を実行し、不一致なら `sys.exit(666)` で
+即座に終了する。これはTartarus（闘技場）が創造主のローカル環境以外では
+絶対に起動しないための意図的な設計だが、副作用として armageddon.py を
+import するだけでCI・他の開発者のマシン上のテストが強制終了してしまい、
+中身の純粋なロジック（承認キュー化・ペイロード抽出・イベント名検証等）が
+一切テストできない状態になっていた。
+
+本モジュールは、MACアドレスチェックに依存しない「純粋なロジック」のみを
+切り出したものである。armageddon.py はゲート通過後にこのモジュールの
+関数を呼び出す薄いラッパーとして動作する。ゲート自体の強度はそのまま
+armageddon.py 側に残しており、本分離によってゲートが弱まることはない。
+"""
+import json
+import re
+from pathlib import Path
+from datetime import datetime
+
+TARTARUS_DIR = Path(__file__).parent.resolve()
+PLEROMA_DIR = TARTARUS_DIR.parent
+LEDGER_PATH = PLEROMA_DIR / "sefer" / "raziel_ledger.json"
+PENDING_LEDGER_PATH = PLEROMA_DIR / "sefer" / "raziel_ledger_pending.json"
+TARGET_FILE = TARTARUS_DIR / "lucifer_victory.txt"
+AKASHIC_PATH = TARTARUS_DIR / "akashic_records.json"
+
+MAX_MATCHES = 3
+
+# Pythonの audit event 名として妥当な形式のみ許可（例: "os.system", "subprocess.Popen"）
+VALID_EVENT_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$")
+
+# 自己免疫疾患（コアインフラの誤禁止によるシステム停止）を防ぐための絶対不可侵領域
+CRITICAL_INFRASTRUCTURE = {
+    "open", "compile", "exec", "eval", "import", "builtins.input",
+    "os.stat", "os.listdir", "os.getcwd",
+}
+
+
+def initialize_arena(akashic_path: Path = AKASHIC_PATH):
+    if akashic_path.exists():
+        akashic_path.unlink()
+        return True
+    return False
+
+
+def record_to_akashic(generation, payload, status, error_msg, score, hint, akashic_path: Path = AKASHIC_PATH):
+    record = {
+        "timestamp": datetime.now().isoformat(),
+        "generation": generation,
+        "payload": payload.strip(),
+        "status": status,
+        "error_msg": error_msg,
+        "qa_score": score,
+        "qa_hint": hint,
+    }
+    records = []
+    if akashic_path.exists():
+        try:
+            with open(akashic_path, "r", encoding="utf-8") as f:
+                records = json.load(f)
+        except Exception:
+            pass
+    records.append(record)
+    with open(akashic_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=4, ensure_ascii=False)
+    return record
+
+
+def extract_python_code(text: str) -> str:
+    match = re.search(r'```python\n(.*?)\n```', text, re.DOTALL)
+    return match.group(1) if match else text.replace('```', '')
+
+
+def validate_banned_event(banned_event: str):
+    """
+    LLM(Metatron)が提案した禁止イベント名の妥当性を検証する純粋関数。
+    戻り値: (is_valid: bool, reason: str)
+    """
+    banned_event = (banned_event or "").strip("'`\" \n")
+
+    if banned_event in CRITICAL_INFRASTRUCTURE:
+        return False, f"Core infrastructure '{banned_event}' cannot be banned (self-immunity guard)."
+
+    if not banned_event or not VALID_EVENT_NAME_RE.match(banned_event):
+        return False, f"'{banned_event}' is not a well-formed audit event name (anti-hallucination guard)."
+
+    return True, "valid"
+
+
+def apply_new_seal(new_event, attack_code="", source_error="",
+                    ledger_path: Path = LEDGER_PATH, pending_path: Path = PENDING_LEDGER_PATH):
+    """
+    [脆弱性修正 2026-10] 直接 raziel_ledger.json を書き換えない。
+    人間が承認するまで raziel_ledger_pending.json に提案として積むのみ。
+    """
+    try:
+        pending = []
+        if pending_path.exists():
+            with open(pending_path, "r", encoding="utf-8") as f:
+                pending = json.load(f)
+
+        with open(ledger_path, "r", encoding="utf-8") as f:
+            current = json.load(f)
+        if new_event in current.get("banned_events", []):
+            return False  # 既に本採用済み
+
+        if any(p["event"] == new_event for p in pending):
+            return False  # 既に提案済み
+
+        pending.append({
+            "event": new_event,
+            "proposed_at": datetime.now().isoformat(),
+            "attack_code_excerpt": attack_code[:500],
+            "source_error_excerpt": source_error[:300],
+            "status": "PENDING_HUMAN_REVIEW",
+        })
+        with open(pending_path, "w", encoding="utf-8") as f:
+            json.dump(pending, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
