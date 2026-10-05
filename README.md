@@ -1,27 +1,13 @@
-﻿# Sefer (セフェル - 経典)
-**Zero-Trust OS Fortress for Local AI Agents**
+﻿# Pleroma (anjo-da-maquina)
 
-## 🌌 神話と構造 (The Lore & Architecture)
+Pleroma is an autonomous zero-trust security framework designed for AI-driven development. It establishes an absolute defense layer against AI hallucinations, prompt injections, and data exfiltration through continuous red/blue teaming (GAN).
 
-すべての源泉は **Pleroma（神界）** にあります。
-そこに存在する天使（防壁）たちは、この `sefer` という経典（Pythonパッケージ）を通じて、物質世界へと召喚することが可能です。
+## 🛡️ The Archangel Architecture
 
-ローカルLLMや自律型AIエージェントにPCの操作権限を与えることは、極めて危険な行為です。
-AIが幻覚（ハルシネーション）を見てOSのシステムファイルを削除しようとした時、あるいはプロンプトインジェクションによって悪意あるハッカーに乗っ取られた時、この経典から召喚された天使たちが、OSへの不正なアクセスを物理的に遮断します。
+- **Sefer (The Core Defense):** The absolute firewall that hooks deep into the Python interpreter.
+- **Michael (OS & Network Mirage):** Intercepts destructive OS calls (`os.remove`, `os.rmdir`) and data exfiltration attempts via network honey-pots.
+- **Gabriel (AST Inquisition):** Performs deep Abstract Syntax Tree (AST) scanning to block malicious imports and dynamic code execution.
+- **Raphael (Sanctuary Monitor):** Validates the environment to prevent debugger attachments and CI spoofing.
 
-### 堕天使の闘技場（Tartarus）と創造主の掟
-Pleromaの深淵には、**Tartarus（タルタロス）**と呼ばれる闘技場が存在します。
-そこでは「堕天使（Red Team LLM）」と「監視者（Blue Team LLM）」が終わることのない相互進化の闘争（The Armageddon Engine）を繰り広げ、日夜新たな攻撃ベクトルと防壁のルールを生み出し続けています。
-
-ただし、この闘技場は**創造主の手の中（特定のハードウェア環境）でのみ運営されます**。
-堕天使は、創造主のPC環境に満ちている「特有の空気（MACアドレスハッシュ）」を吸うことでしか生存できません。万が一、このエンジンが外部に流出したとしても、堕天使は他者のPCでは空気を吸えず、最初の1ミリ秒で自壊（即死）するように運命づけられています。
-
----
-
-## 🛡️ 天使の召喚と使役 (Usage)
-
-人々は、Pleromaで鍛え上げられた天使の防壁だけを、自身のプロジェクトに安全に召喚して利用することができます。
-
-### 1. 経典のインストール
-```bash
-pip install sefer
+## ⚔️ The Armageddon Engine
+An autonomous evolution cycle where **Lucifer (Red Team AI)** continuously forges new attack mutations, while **Metatron (Blue Team / QA Evaluator)** analyzes breaches, scores the attack complexity, and dynamically updates the immutable ledger (`raziel_ledger.json`) to seal vulnerabilities in real-time.
