@@ -6,3 +6,8 @@ dist/
 build/
 *.egg-info/
 raziel_ledger_pending.json
+.angel_state/
+incident_report.json
+sanctuary_manifest.json
+zk_audit_trail.json
+remote_ledger_sync.log
