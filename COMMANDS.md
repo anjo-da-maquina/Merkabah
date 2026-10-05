@@ -3,6 +3,20 @@
 [整理 2026-10] 以前は `anjo-da-maquina`（BOM付き・拡張子なし）と `anjo-da-maquina.txt`
 の2つの重複ファイルが内容の異なるまま併存していた。本ファイルに統合する。
 
+## 🔒 初回セットアップ（クローン後に一度だけ実行）
+pre-commitでのシークレットスキャンを有効化する。`hooks/pre-commit` はリポジトリに
+含まれているが、**gitはデフォルトでは自動的に読み込まない**ため、クローンした
+各マシンで一度だけ以下を実行する必要がある。
+
+```
+git config core.hooksPath hooks
+```
+
+これにより、AWSキー・GitHub/OpenAIトークン・PEM秘密鍵等のパターンがステージされた
+変更の\*追加行\*に含まれている場合、`git commit` 自体がブロックされるようになる
+（検知ロジックは `tools/pre_commit_secret_scan.py`、CI時の全リポジトリ走査は
+`angels/gabriel_canary.py` が別途担う）。
+
 ## ⚔️ 闘争と進化（アリーナ運用）
 闘技場を起動し、ルシファー（攻撃AI・堕天使）とメタトロン（防衛・QA）を3戦戦わせる。
 闘争結果は自動的に `tartarus/akashic_records.json` に記録され、次回起動時に自動浄化される。

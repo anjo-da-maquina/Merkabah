@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pleroma: pre-commit シークレットスキャン
+#
+# [新設 2026-10] 本フックは git 単独では自動的に有効化されない。
+# リポジトリをクローンした後、一度だけ以下を実行して有効化すること:
+#
+#   git config core.hooksPath hooks
+#
+# 実体ロジックは tools/pre_commit_secret_scan.py にあり、本フックから
+# 呼び出すだけの薄いラッパーである（ロジック自体はpytestで単体テスト
+# 可能にするため、シェルスクリプトに直接書かない）。
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Windows(Git Bash)・Linux・macOS いずれでも動くようpythonを探す。
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+elif command -v python >/dev/null 2>&1; then
+    PYTHON=python
+else
+    echo "[pre-commit] pythonが見つかりません。シークレットスキャンをスキップしますが、これは安全ではありません。" >&2
+    exit 1
+fi
+
+"$PYTHON" "$REPO_ROOT/tools/pre_commit_secret_scan.py"
