@@ -178,6 +178,16 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### L. `cassiels_veil.py`は統合せずデモとして保持、`samaels_curse.py`は削除
+
+2026-10、残っていた2件のスタンドアロンデモについて判断した。
+
+\*\*`cassiels_veil.CassielsVeil`は統合しない(デモとして保持)\*\* — `socket.socket`をプロセスグローバルに置き換える実装のため、実運用ループ(`src/ollama_agent_loop.py`等)が依存するローカルOllamaサーバーへの通信まで一緒に遮断してしまい、システム自体が機能不能になる。また、AI生成コードの動的実行は既に`src/aegis_system.py`経由でDockerの`--network none`によってOSレベルで通信遮断済み(§Aおよび`src/sandalphon_jail.py`)であり、本クラスはそれより弱い手法で、かつ上記の副作用を抱えるため、現行アーキテクチャ上は安全に組み込める場所がない。「audit hookより下の層(socket層)でも遮断できる」という設計思想を示す教材として、docstringにこの位置づけを明記した上で保持する。
+
+\*\*`samaels_curse.py`を削除\*\* — マーカーファイル(`anjo-da-maquina`)の有無のみで「監視環境かどうか」を判定する囮ファイルの概念実証だったが、実運用の防御には既に`anjo_interceptor.IntentInterceptor`の本格的なハニーポット機構(`dummy_secrets/`固定ハニーポット、タスクごとに動的生成される`phantom_prison`)が存在し、本ファイルの単純なファイル存在チェックはそれより弱く機能的に完全に重複していた。§Iの重複コード削除(`oracle_feed.py`等)と同じ判断基準により削除した。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
