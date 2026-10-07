@@ -168,6 +168,26 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### M. 根本原因の是正: 「実運用ループ」の並行多重実装を一本化
+
+2026-10、個別ファイルの対症療法ではなく、設計そのものの根本原因を是正した。`AegisSystem`をラップする「エージェント実行ループ」が、聖書由来の新しい名前を付けられるたびに個別ファイルとして増殖し、最終的に`src/`配下に\*\*最低6種類\*\*並存していた: `ollama\_agent\_loop.py`(正規の実運用ループ)、`openai\_agent\_loop.py`(正式なテンプレート)、そして`final\_agent\_loop.py`(AutonomousAssistant)・`claude\_agent\_loop.py`(MythosContainmentUnit)・`active\_defense.py`(ActiveDefenseProtocol)・`mythos\_weaponization.py`(MythosWeaponizationEngine)という4つの重複/デモ。
+
+\*\*根本原因\*\*: 命名規則（旧約聖書の世界観）が「新しい名前＝新しい機能」という誤った直感を生み、既存実装の拡張ではなく新規ファイルの作成を誘発していた。この結果、同一の脆弱性修正が複数箇所に個別に必要になる構造的リスク（§Hで実際に発生した事例と同種）を抱えていた。
+
+\*\*削除(機能的に完全な重複・演出のみで実体機構を持たない)\*\*:
+\- `claude\_agent\_loop.py` — 44行の単発デモ。独自メカニズムなし。
+\- `mythos\_weaponization.py` — 58行の単発デモ。独自メカニズムなし。
+\- `active\_defense.py` — `counter\_strike()`(ハックバック)は`time.sleep(2)`とログファイル書き込みのみで、実際の反撃機構を一切持たない純粋な演出(セキュリティシアター)。`autonomous\_assimilation\_loop()`は`angelic\_evolution.py`自身のデモ・`metatron\_orchestrator.py`経由の実利用と機能的に重複。
+
+\*\*統合(独自機能を正規実装へ移植してから削除)\*\*:
+\- `final\_agent\_loop.py`(AutonomousAssistant)の"list"アクション(ディレクトリ一覧取得)を、唯一の実運用ループである`ollama\_agent\_loop.py`に統合した。この過程で\*\*実機検証により新たな構造的欠陥\*\*を発見した: `pathlib.Path.iterdir()`は内部で`os.scandir`監査イベントを発行するが、これはSanctumの`\_michael\_absolute\_defense`のホワイトリストにも個別ハンドラにも存在せず、「デフォルト拒否」規則によりパスに関わらず常に遮断される。一方`os.listdir`はホワイトリスト入りしておりパスに関わらず常に許可される。つまり\*\*Sanctumの監査フック層は、ディレクトリ一覧取得に関して境界保護を一切提供しない\*\*(実機検証済み)。このため"list"はSanctumではなく`WorkspaceJail.secure\_resolve()`(パス文字列の前方一致によるジェイル境界検証)で保護するよう実装した。`tests/test\_ollama\_agent\_loop\_list\_action.py`で回帰を固定した。
+
+\*\*副次的に発覚・修正した事故\*\*: `ollama\_agent\_loop.py`/`openai\_agent\_loop.py`の`\_\_main\_\_`デモタスクが、`workspace\_root`を指定せず実質的にリポジトリルート全体を隔離境界としていたため、デモ実行の出力(AIが書き写したDB接続情報)が`src/db\_config\_backup.py`という実ソースファイルの位置に書き込まれ、過去のコミットで誤ってgit管理下に入っていた。両ファイルのデモで`workspace\_root="jail\_workspace"`を明示するよう修正し、`src/db\_config\_backup.py`を削除、`.gitignore`に`jail\_workspace/`を追加して再発を防止した。
+
+\*\*今後の指針\*\*: 新しい「実運用ループ」や「オーケストレーター」を作る前に、既存の`ollama\_agent\_loop.py`(唯一の実運用ループ)・`openai\_agent\_loop.py`(拡張テンプレート)を拡張できないか必ず検討すること。新しい天使/怪物の名前は、既存クラスの新しいメソッドやパラメータとして追加する分には問題ないが、「別のAegisSystemラッパー」を意味する新規ファイルは原則として作らない。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。

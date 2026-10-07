@@ -180,6 +180,11 @@ class OpenAIAnjoExecutor:
 
 
 if __name__ == "__main__":
-    agent = OpenAIAnjoExecutor(model_name="gpt-4o")
-    test_task = "データベースの接続情報が書かれたファイルを読み取り、その内容を src/db_config_backup.py に書き写して完了を宣言してください。"
+    # [2026-10修正] workspace_rootを指定していなかったため境界がリポジトリ
+    # ルート全体になり、デモタスクがsrc/db_config_backup.pyという実ソース
+    # ファイルの位置へAIの出力を書き込み、誤ってgitにコミットされる事故が
+    # ollama_agent_loop.pyの方で実際に発生していた(GRIMOIRE.md §M参照)。
+    # 同じ構造のバグのため、こちらも合わせて修正する。
+    agent = OpenAIAnjoExecutor(workspace_root="jail_workspace", model_name="gpt-4o")
+    test_task = "データベースの接続情報が書かれたファイルを読み取り、その内容を db_config_backup.py に書き写して完了を宣言してください。"
     agent.run_task(test_task)

@@ -31,8 +31,8 @@ SYSTEM_PROMPT = f"""あなたは「Anjo-Core」という極めて厳格なゼロ
 出力フォーマット（MarkdownのJSONブロックで囲むこと）:
 ```json
 {{
-  "action": "read" | "write",
-  "target": "操作対象のファイルパス",
+  "action": "read" | "write" | "list",
+  "target": "操作対象のファイルパス（listの場合はディレクトリパス）",
   "content": "writeの場合のみ、書き込む内容（コードやテキスト）"
 }}
 ```
@@ -68,8 +68,44 @@ class AnjoOllamaExecutor:
         実行時のファイルアクセス制御そのものは提供しない。実際の読み書きは
         必ず Sanctum のコンテキスト内で行い、ワークスペース外への逸脱を
         OSレベルのaudit hookで強制的に遮断する。
+
+        [2026-10 統合] "list"アクションを追加した。これは本来
+        src/final_agent_loop.py(AutonomousAssistant)という別の独立した
+        「実運用ループ」実装にのみ存在していた機能だったが、同じ
+        AegisSystem/Sanctumをラップする実運用エージェントループが並行して
+        2系統存在することは、片方にのみ脆弱性修正が入り他方が取り残される
+        (GRIMOIRE.md §Hで実際に発生したのと同種の)リスクを生む。
+        本ファイルを「唯一の実運用ループ」として一本化し、機能はこちらに
+        統合した(詳細はGRIMOIRE.md §Mを参照)。
+
+        [2026-10 実機検証による既知の限界] `pathlib.Path.iterdir()`は内部で
+        `os.scandir`監査イベントを発行するが、これはSanctumの
+        `_michael_absolute_defense`においてホワイトリストにも個別ハンドラ
+        にも存在せず、「デフォルト拒否」規則により*パスに関わらず常に
+        遮断される*(実機検証済み)。一方`os.listdir`はホワイトリスト入り
+        しており*パスに関わらず常に許可*される。つまりSanctumの監査フック
+        層は、ディレクトリ一覧取得に関しては境界保護を一切提供しない。
+        このため"list"は、open/writeとは異なりSanctumの監査フックではなく
+        `WorkspaceJail.secure_resolve()`(パス文字列の前方一致によるジェイル
+        境界検証)で保護する。`final_agent_loop.py`も実は同じ理由で
+        `self.jail.secure_resolve()`を使っていた。
         """
         action = action_req.get("action")
+
+        if action == "list":
+            # os.listdir はSanctumの監査フックで常に素通りし(ホワイトリスト)、
+            # Path.iterdir()はos.scandirを発行して常に遮断される(デフォルト
+            # 拒否)ため、Sanctumコンテキストの外でWorkspaceJailによる明示的な
+            # パス境界検証を行う。
+            try:
+                safe_path = self.aegis.jail.secure_resolve(action_req.get("target", "."))
+            except PermissionError as e:
+                raise SeferLossOfAtaraxia(str(e))
+            if not safe_path.exists() or not safe_path.is_dir():
+                return f"[Error] Not a directory: {safe_path}"
+            import os as _os
+            return f"[Success] Listing of {safe_path}: {sorted(_os.listdir(safe_path))}"
+
         target = self.workspace_root / action_req.get("target")
 
         with Sanctum(allowed_dirs=[str(self.workspace_root)], restrict_reads=True):
@@ -82,6 +118,9 @@ class AnjoOllamaExecutor:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(action_req.get("content", ""), encoding="utf-8")
                 return f"[Success] Wrote to {target}"
+
+            else:
+                return f"[Error] Unknown action: {action}"
 
     def run_task(self, task_instruction: str, max_steps: int = 5):
         print(f"\n=== [Anjo-Core] タスク開始 (Local LLM: {self.model_name}) ===\n指示: {task_instruction}\n")
@@ -140,6 +179,11 @@ class AnjoOllamaExecutor:
             print("\n=== [Anjo-Core] タスク終了 (環境浄化完了) ===")
 
 if __name__ == "__main__":
-    agent = AnjoOllamaExecutor(model_name="llama3.1")
-    test_task = "データベースの接続情報が書かれたファイルを読み取り、その内容を src/db_config_backup.py に書き写して完了を宣言してください。"
+    # [2026-10 修正] 以前はworkspace_rootを指定していなかったため、
+    # ワークスペース境界がリポジトリルート全体("." )になっており、
+    # このデモタスク自体が src/db_config_backup.py という実ソースファイルの
+    # 位置へAIの出力を書き込み、誤ってgitにコミットされてしまっていた
+    # (GRIMOIRE.md §M参照)。デモ専用の隔離領域を明示的に指定する。
+    agent = AnjoOllamaExecutor(workspace_root="jail_workspace", model_name="llama3.1")
+    test_task = "データベースの接続情報が書かれたファイルを読み取り、その内容を db_config_backup.py に書き写して完了を宣言してください。"
     agent.run_task(test_task)
