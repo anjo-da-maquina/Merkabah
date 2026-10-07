@@ -35,7 +35,17 @@ class RazielIntelligence:
         }
         
         report_target = "raziel_aidd_report.json"
-        self.aegis.execute_ai_intent("print('safe_recon_save')", report_target)
+        # [2026-10 修正] これは我々自身(Raziel)が生成した信頼済みの内部レポート
+        # であり、AIが生成した未検証コードではない。したがって
+        # AegisSystem.execute_ai_intent()(Gabriel静的解析 + Sandalphon/Docker
+        # 動的検証を含むAI生成コード審査パイプライン全体)を通す必要はない。
+        # 修正前は固定文字列 "print('safe_recon_save')" をここに通していたが、
+        # これは実質的に無意味な審査であるにもかかわらず、Dockerデーモンが
+        # 利用できない環境(フェイルクローズド設計の既定状態)では
+        # PermissionError を送出し、サイクル1回目で即座にクラッシュしていた
+        # (実機検証済み)。パスのジェイル越脱防止は secure_resolve 単体で
+        # 十分であり、これは AI 生成コードではなく信頼済みの内部書き込みの
+        # パス検証として適切な層である。
         safe_path = self.aegis.jail.secure_resolve(report_target)
         
         with open(safe_path, "w", encoding="utf-8") as f:

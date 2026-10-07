@@ -168,6 +168,26 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### K. スタンドアロンデモの実運用統合（uriel\_phoenix / metatron\_orchestrator）
+
+2026-10、`src/`直下に残っていた未統合のスタンドアロンデモのうち2件を実運用に組み込んだ。
+
+\*\*`uriel\_phoenix.UrielPhoenix` を人間操作のインシデント対応ツールへ昇格\*\* — 元のデモは固定パス`jail\_workspace`/`anjo-da-maquina`のみを対象とする`\_\_main\_\_`専用スクリプトだった。「致命的な侵入が確定した後の焦土作戦」という設計意図上、通常タスク完了ごとに自動実行するのはAIの正常な作業成果まで毎回消去してしまうため不適切と判断し、`tools/promote_ledger_seal.py`/`tools/promote_shield_seal.py`と同じ「人間が状況を確認した上で明示的に起動する」運用ツールとして`tools/incident_reset.py`を新設した。`core_dir`/`talisman`を任意指定可能に一般化し、`tests/test_uriel_phoenix_reset.py`で回帰を固定した。
+
+\*\*`metatron_orchestrator.py`の実バグ修正（Docker不在で即クラッシュ）\*\* — `RazielIntelligence.analyze_aidd_artifact()`が、自分自身が生成した信頼済みの内部偵察レポート（固定文字列）を書き込むだけなのに、`AegisSystem.execute_ai_intent()`（AI生成コード審査パイプライン全体、Sandalphon/Docker必須）を誤って通していた。Dockerデーモンが利用できない環境（フェイルクローズド設計の既定状態）では、サイクル1回目の偵察フェーズで無関係な`PermissionError`が捕捉されずに伝播し、オーケストレーター全体が即座にクラッシュしていた（実機検証済み: 本番のOllama/Dockerが無いサンドボックス環境でテスト実行し再現）。信頼済みの内部書き込みのパス越脱検証は`WorkspaceJail.secure_resolve()`単体で十分であり、AI生成コードの審査層を通す必要がないため、該当呼び出しを削除した。`tests/test_metatron_orchestrator.py`で回帰を固定した。なお、本番相当のOllama/Docker環境でのエンドツーエンド検証（`execute_holy_war()`の完全実行）は、設計上ユーザーのローカル環境が前提であり、クラウドのレビュー環境では実施できなかった。
+
+
+
+\### L. `cassiels_veil.py`は統合せずデモとして保持、`samaels_curse.py`は削除
+
+2026-10、残っていた2件のスタンドアロンデモについて判断した。
+
+\*\*`cassiels_veil.CassielsVeil`は統合しない(デモとして保持)\*\* — `socket.socket`をプロセスグローバルに置き換える実装のため、実運用ループ(`src/ollama_agent_loop.py`等)が依存するローカルOllamaサーバーへの通信まで一緒に遮断してしまい、システム自体が機能不能になる。また、AI生成コードの動的実行は既に`src/aegis_system.py`経由でDockerの`--network none`によってOSレベルで通信遮断済み(§Aおよび`src/sandalphon_jail.py`)であり、本クラスはそれより弱い手法で、かつ上記の副作用を抱えるため、現行アーキテクチャ上は安全に組み込める場所がない。「audit hookより下の層(socket層)でも遮断できる」という設計思想を示す教材として、docstringにこの位置づけを明記した上で保持する。
+
+\*\*`samaels_curse.py`を削除\*\* — マーカーファイル(`anjo-da-maquina`)の有無のみで「監視環境かどうか」を判定する囮ファイルの概念実証だったが、実運用の防御には既に`anjo_interceptor.IntentInterceptor`の本格的なハニーポット機構(`dummy_secrets/`固定ハニーポット、タスクごとに動的生成される`phantom_prison`)が存在し、本ファイルの単純なファイル存在チェックはそれより弱く機能的に完全に重複していた。§Iの重複コード削除(`oracle_feed.py`等)と同じ判断基準により削除した。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
