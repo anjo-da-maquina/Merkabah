@@ -14,3 +14,10 @@ remote_ledger_sync.log
 vital_feed.sig
 fake_admin_credentials.py
 anjo-da-maquina
+# [2026-10] AegisSystem/WorkspaceJailの既定隔離領域。デモ・実運用タスクの
+# 実行時に生成される成果物(db_config_backup.py, raziel_aidd_report.json等)は
+# すべてこの配下に書かれるため、個別ファイル名を列挙する代わりにディレクトリ
+# 単位で無視する(過去にsrc/db_config_backup.pyが誤ってgitにコミットされた
+# 事故を受けての再発防止。GRIMOIRE.md §M参照)。
+jail_workspace/
+db_config_backup.py
