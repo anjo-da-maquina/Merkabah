@@ -1,4 +1,4 @@
-﻿name: Anjo da mﾃ｡quina Protocol - Angels
+name: Anjo da máquina Protocol - Angels
 
 on:
   push:
@@ -6,134 +6,129 @@ on:
   workflow_dispatch:
     inputs:
       chaos_mode:
-        description: '繧ｫ繧ｪ繧ｹ繝｢繝ｼ繝会ｼ育函蟄倩ｨｼ譏弱・騾皮ｵｶ繝ｻ繧ｷ繧ｹ繝・Β逡ｰ蟶ｸ縺ｮ繧ｷ繝溘Η繝ｬ繝ｼ繝茨ｼ峨ｒ譛牙柑縺ｫ縺吶ｋ'
+        description: 'カオスモード（生存証明の途絶・システム異常のシミュレーション）を有効にする'
         required: false
         default: false
         type: boolean
 
 jobs:
   angelic-audit:
-    name: 閨悶↑繧狗ｵｱ蜷育屮隕・(Angelic Zero-Trust Audit)
+    name: 聖なる統合監査 (Angelic Zero-Trust Audit)
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. 閨門沺縺ｮ貅門ｙ (Checkout Repository)
+      - name: 1. 聖域の準備 (Checkout Repository)
         uses: actions/checkout@v3
 
-      - name: 2. 逾ｭ螢・・貅門ｙ (Set up Python)
+      - name: 2. 祭壇の準備 (Set up Python)
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 3. 萓帷黄縺ｮ貅門ｙ (Install Dependencies)
+      - name: 3. 供物の準備 (Install Dependencies)
         run: |
           python -m pip install --upgrade pip
           pip install networkx pyyaml playwright mcp pandas openpyxl pytest
           playwright install chromium --with-deps
 
-      - name: 3.1. 隨ｬ莠斐・蟆∝魂 (The Fifth Seal - 繧ｵ繝繧ｽ繝ｳ繝ｻ繧ｪ繝励す繝ｧ繝ｳ)
-        env:
-          CHAOS_MODE: ${{ github.event.inputs.chaos_mode == 'true' && 'true' || 'false' }}
-        run: python angels/fifth_seal_samson.py
-
-      - name: 3.2. 繧｢繝ｫ繝輔ぃ縺ｨ繧ｪ繝｡繧ｬ縺ｮ邨千阜 (Workflow Integrity Guard)
+      - name: 3.2. アルファとオメガの結界 (Workflow Integrity Guard)
         run: python angels/alpha_omega_guard.py
-      - name: 3.3. 繝ｫ繧ｷ繝輔ぃ繝ｼ縺ｮ蜿埼・(Chaos Engineering)
+      - name: 3.3. ルシファーの叛逆 (Chaos Engineering)
         env:
           CHAOS_MODE: ${{ github.event.inputs.chaos_mode == 'true' && 'true' || 'false' }}
         run: python angels/lucifer_rebellion.py
-      - name: 3.4. 繝｡繧ｿ繝医Ο繝ｳ縺ｮ遶区婿菴・(Metatron's Cube - 繝上・繝峨え繧ｧ繧｢迚ｩ逅・ｽｲ蜷咲屮譟ｻ)
+      - name: 3.4. メタトロンの立方体 (Metatron's Cube - ハードウェア物理署名監査)
         run: python angels/metatron_cube_hsm.py
-      - name: 3.5. 遨ｹ遯ｿ縺ｮ閨門沺 (Firmament Enclave - TEE繝｡繝｢繝ｪ證怜捷蛹也屮譟ｻ)
+      - name: 3.5. 穹窿の聖域 (Firmament Enclave - TEEメモリ暗号化監査)
         run: python angels/firmament_enclave_tee.py
-      - name: 3.6. 繧ｷ繝｣繝溘・繝ｫ縺ｮ蟆∝魂 (Shamir's Seal - 蛻・淵骰ｵ邂｡逅・→邂｡霓・玄螳夊ｶｳ謨ｰ逶｣譟ｻ)
+      - name: 3.6. シャミールの封印 (Shamir's Seal - 分散鍵管理と鍵復元定足数監査)
         env:
           CHAOS_MODE: ${{ github.event.inputs.chaos_mode == 'true' && 'true' || 'false' }}
         run: python angels/shamir_seal.py
-      - name: 3.8. 螟夜Κ隕∽ｻｶ縺ｮ謚ｽ蜃ｺ (Excel to YAML Parser)
+      - name: 3.8. 外部要件の抽出 (Excel to YAML Parser)
         run: python adapters/excel_to_yaml_parser.py
 
-      - name: 4. 繧ｦ繝ｪ繧ｨ繝ｫ縺ｮ轤・(Uriel - 繝ｪ繝励Ξ繧､謾ｻ謦・屮譟ｻ)
+      - name: 4. ウリエルの焰 (Uriel - リプレイ攻撃監査)
         run: python angels/uriel_nonce.py
-      - name: 4.5. 繝｡繧ｿ繝医Ο繝ｳ縺ｮ蝠鍋､ｺ (Metatron MCP - 諤晁・ｵｱ蛻ｶ逶｣譟ｻ)
+      - name: 4.5. メタトロンの啓示 (Metatron MCP - 情報統制監査)
         run: python angels/metatron_revelation_mcp.py
-      - name: 4.8. 辭ｾ螟ｩ菴ｿ縺ｮ蜷域э (Seraphim Consensus - 繝槭Ν繝´LM逡ｰ遶ｯ讀懃衍)
+      - name: 4.8. 熾天使の合意 (Seraphim Consensus - マルチLLM異端検知)
         env:
           CHAOS_MODE: ${{ github.event.inputs.chaos_mode == 'true' && 'true' || 'false' }}
         run: python angels/seraphim_consensus.py
-      - name: 4.9. 繧ｨ繝弱け縺ｮ逾櫁ｨ・(Enochian Oracle - 蛻・淵蝙九が繝ｩ繧ｯ繝ｫ逵溽炊逶｣譟ｻ)
+      - name: 4.9. エノクの神託 (Enochian Oracle - 分散型オラクル真理監査)
         run: python angels/enochian_oracle.py
-      - name: 4.10. 繝ｩ繝輔ぃ繧ｨ繝ｫ縺ｮ逋偵ｄ縺・(Raphael - 繝輔ぉ繧､繝ｫ繧ｯ繝ｭ繝ｼ繧ｺ蜑阪・閾ｪ蠕倶ｿｮ蠕ｩ)
+      - name: 4.10. ラファエルの癒やし (Raphael - ファイルクローズ前の自動修復)
         run: python angels/raphael_remediation.py
-      - name: 5. 繝｡繧ｿ繝医Ο繝ｳ縺ｮ蜊ｰ (Metatron Seal - 隕∽ｻｶ謾ｹ縺悶ｓ髦ｲ豁｢)
+      - name: 5. メタトロンの印 (Metatron Seal - 要件改ざん防止)
         run: python angels/metatron_commitment.py
-      - name: 6. 繝溘き繧ｨ繝ｫ縺ｮ蜑｣ (Michael - 隲也炊髫阡ｽ逶｣譟ｻ)
+      - name: 6. ミカエルの剣 (Michael - 論理隠蔽監査)
         run: python angels/michael_sword.py
-      - name: 7. 繧ｪ繝輔ぃ繝九Β縺ｮ逵ｼ (Ophanim - 雉・≡驍・ｵ∫屮譟ｻ)
+      - name: 7. オファニムの瞳 (Ophanim - 資格継承監査)
         run: python angels/ophanim_eye.py
-      - name: 8. 繧ｶ繝峨く繧ｨ繝ｫ縺ｮ螟ｩ逅・о (Zadkiel - 迥ｶ諷矩・遘ｻ逶｣譟ｻ)
+      - name: 8. ザドキエルの天球儀 (Zadkiel - 状態遷移監査)
         run: python angels/zadkiel_astrolabe.py
-      - name: 9. 繧ｫ繝槭お繝ｫ縺ｮ逶ｾ (Camael - 繝壹う繝ｭ繝ｼ繝蛾亟蠕｡逶｣譟ｻ)
+      - name: 9. カマエルの盾 (Camael - ペイロード防御監査)
         run: python angels/camael_shield.py
-      - name: 10. 繧ｸ繝ｧ繝輔ぅ繧ｨ繝ｫ縺ｮ髀｡ (Jophiel - 諢丞袖隲也噪繝峨Μ繝輔ヨ逶｣譟ｻ)
+      - name: 10. ジョフィエルの鏡 (Jophiel - 意味論的ドリフト監査)
         run: python angels/jophiel_semantic.py
-      - name: 11. 繧ｬ繝悶Μ繧ｨ繝ｫ縺ｮ蝗√″ (Gabriel - 讖溷ｯ・ｼ乗ｴｩ逶｣譟ｻ)
+      - name: 11. ガブリエルの囮 (Gabriel - 機密漏洩監査)
         run: python angels/gabriel_canary.py
-      - name: 12. 繝ｩ繧ｰ繧ｨ繝ｫ縺ｮ螟ｩ遘､ (Raguel - 迚ｩ逅・ｩｺ髢鍋屮譟ｻ)
+      - name: 12. ラグエルの天秤 (Raguel - 物理空間監査)
         run: python angels/raguel_scale.py
-      - name: 13. 繝ｩ繧ｸ繧ｨ繝ｫ縺ｮ譖ｸ (Raziel - 繧ｹ繝槭・繝医さ繝ｳ繝医Λ繧ｯ繝磯荘螳・
+      - name: 13. ラジエルの書 (Raziel - スマートコントラクト鑑定)
         run: python angels/raziel_auditor.py
-      - name: 14. 繧ｵ繝ｪ繧ｨ繝ｫ縺ｮ陬∝ｮ・(Sariel - 螟夜Κ繝・・繝ｫ蝣募､ｩ逶｣譟ｻ)
+      - name: 14. サリエルの裏切り (Sariel - 外部ツール偽装監査)
         run: python angels/sariel_fallen_auditor.py
-      - name: 15. 閨門沺 (Sanctuary - 繝・・繝ｭ繧､險ｱ蜿ｯ)
+      - name: 15. 聖域 (Sanctuary - デプロイ許可)
         if: success()
-        run: echo "縺吶∋縺ｦ縺ｮ髱咏噪繝ｻ證怜捷隲也噪逶｣譟ｻ繧帝夐℃縺励∪縺励◆縲・
+        run: echo "すべての静的・暗号論的監査を通過しました。"
 
-      - name: 16. 讓ｩ螟ｩ菴ｿ縺ｮ隧ｦ邱ｴ (Principalities - 讖溯・隕∽ｻｶE2E逶｣譟ｻ)
+      - name: 16. 権天使の試練 (Principalities - 機能要件E2E監査)
         if: success()
         run: python angels/principalities_e2e.py
-      - name: 17. 蠎ｧ螟ｩ菴ｿ縺ｮ蜊・愍 (Thousand Eyes - UI隕冶ｦ夂屮譟ｻ)
+      - name: 17. 座天使の千里眼 (Thousand Eyes - UI視覚監査)
         if: success()
         run: python angels/ophanim_thousand_eyes.py
-      - name: 18. 螟夜ΚQA繝・・繝ｫ縺ｮ螳溯｡・(External QA Adapter)
+      - name: 18. 外部QAツールの実行 (External QA Adapter)
         if: success()
         run: python adapters/external_qa_wrapper.py
-      - name: 18.5. 譎ｺ螟ｩ菴ｿ縺ｮ邨千阜 (Cherubim - eBPF繝ｩ繝ｳ繧ｿ繧､繝逶｣隕・
+      - name: 18.5. 智天使の結界 (Cherubim - eBPFランタイム監査)
         env:
           CHAOS_MODE: ${{ github.event.inputs.chaos_mode == 'true' && 'true' || 'false' }}
         run: python angels/cherubim_ebpf_guard.py
-      - name: 19. 蜉帛､ｩ菴ｿ縺ｮ隧ｦ邱ｴ (Virtues - 髱樊ｩ溯・隕∽ｻｶ雋闕ｷ逶｣譟ｻ)
+      - name: 19. 力天使の試練 (Virtues - 非機能要件負荷監査)
         if: success()
         run: python angels/virtues_load.py
-      - name: 20. 繧ｵ繝ｳ繝繝ｫ繝輔か繝ｳ縺ｮ髻ｿ (Sandalphon - 逶｣譟ｻ險ｼ霍｡逶｣譟ｻ)
+      - name: 20. サンダルフォンの響 (Sandalphon - 監査証跡監査)
         if: success()
         run: python angels/sandalphon_echo.py
-      - name: 21. 螟ｧ螟ｩ菴ｿ縺ｮ蜊ｰ迺ｽ (Sanctuary Manifest - 蜩∬ｳｪ諡・ｿ昜ｸ隕ｧ蜃ｺ蜉・
+      - name: 21. 大天使の玉璽 (Sanctuary Manifest - 品質保証一覧出力)
         if: success()
         run: python angels/sanctuary_manifest.py
-      - name: 21.5. 繧ｵ繝ｳ繝繝ｫ繝輔か繝ｳ縺ｮ讌・(Sandalphon Anchor - 險ｼ霍｡縺ｮ繝悶Ο繝・け繝√ぉ繝ｼ繝ｳ蛻ｻ蜊ｰ)
+      - name: 21.5. サンダルフォンの錨 (Sandalphon Anchor - 証跡のブロックチェーン刻印)
         if: success()
         run: python angels/sandalphon_anchor.py
-      - name: 22. 豎守畑繝ｬ繝昴・繝亥・蜉・(JUnit XML Exporter)
+      - name: 22. 汎用レポート出力 (JUnit XML Exporter)
         if: success()
         run: python adapters/junit_xml_exporter.py
-      - name: 22.5. 螟ｩ縺ｮ遏ｳ迚・(The Heavenly Tablets - ZKP逕滓・)
+      - name: 22.5. 天の石版 (The Heavenly Tablets - ZKP生成)
         if: success()
         run: python angels/heavenly_tablets_zkp.py
 
-      - name: 22.8. 繧ｲ繝倥リ縺ｮ陌夂┌ (Gehenna - 隕ｳ貂ｬ閠・∈縺ｮ繧ｨ繝ｳ繝医Ο繝斐・霑泌唆)
+      - name: 22.8. ゲヘナの虚無 (Gehenna - 観測者へのエントロピー返還)
         if: failure() || cancelled()
         run: python angels/gehenna_void_entropy.py
-      - name: 22.9. 繧｢繧ｺ繝ｩ繧ｨ繝ｫ縺ｮ螟ｧ骼・(Azrael - 繧ｹ繝槭・繝医さ繝ｳ繝医Λ繧ｯ繝域ｸ・ｮ・
+      - name: 22.9. アズラエルの大鎌 (Azrael - スマートコントラクト消滅)
         if: failure() || cancelled()
         run: python angels/azrael_scythe_slashing.py
-      - name: 23.0. 鮟咏､ｺ骭ｲ縺ｮ荳・▽縺ｮ繝ｩ繝・ヱ (Seven Trumpets - 荳榊､我ｺ玖ｱ｡縺ｮ譎ｮ驕咲噪蜈ｬ髢・
+      - name: 23.0. 黙示録の七つのラッパ (Seven Trumpets - 不正事案の恒久的公開)
         if: failure() || cancelled()
         run: python angels/seven_trumpets_ledger.py
 
-      - name: 23.5. 譛蠕後・蟇ｩ蛻､ (Dies Irae - 騾｣蠎ｧ蛻ｶ繧ｭ繝ｫ繧ｹ繧､繝・メ)
+      - name: 23.5. 最後の審判 (Dies Irae - 連座制キルスイッチ)
         if: failure() || cancelled()
         run: python angels/dies_irae.py
-      - name: 24. 髱吝ｯゅ・邇牙ｺｧ (Throne of Ataraxia - 螳悟・蛻晄悄蛹悶・豬・喧)
+      - name: 24. 静寂の王座 (Throne of Ataraxia - 完全初期化の浄化)
         if: always()
         run: python angels/ataraxia_throne.py
