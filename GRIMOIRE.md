@@ -154,6 +154,20 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### J. `src/`直下の未統合スタンドアロンデモ群の整理
+
+2026-10のセルフレビューで`src/ast\_scanner.py`・`src/deadmans\_switch.py`・`src/starvation\_protocol.py`・`src/cassiels\_veil.py`・`src/samaels\_curse.py`・`src/metatron\_orchestrator.py`・`src/uriel\_phoenix.py`・`src/agent\_loop.py`を確認した。このうち`deadmans\_switch.CollarProtocol`と`starvation\_protocol.StarvationProtocol`は`intelligence\_cycle.py`/`adversarial\_evolution.py`から実際にimportされているが、残りは`angels/`配下の実運用防壁（Michael's Sword等）には一切組み込まれておらず、`\_\_main\_\_`ブロックのみで動く独立デモである。
+
+\*\*`ast\_scanner.CognitiveScanner`の検知漏れを修正\*\* — `visit\_Call`が`node.func`を`ast.Name`としてしか判定しておらず、`builtins.eval(...)`のような属性アクセス経由の呼び出しは`isinstance`チェックを素通りしていた（実機検証済み: 修正前の実装で`import builtins\nbuiltins.eval('1+1')`を解析すると違反ゼロ件）。§Eの`Gabriel`/`KamaelInquisitor`と同一の「完全修飾ドット名の復元」ロジックを導入し、裸の属性名・完全修飾名の両方を照合するようにした。`ImportFrom`経由の直接関数インポート（`from builtins import eval`）も合わせて検知対象に加えた。denylist方式である以上、`importlib.import\_module`等の文字列経由の間接ロードは依然として検知できない既知の限界が残る。
+
+\*\*`CollarProtocol`/`StarvationProtocol`のシークレット運用の限界をdocstringに明記\*\* — 両者とも、照合対象の値が呼び出し側コードに固定文字列として直接埋め込まれているか（`CollarProtocol`）、書き込み権限を持つ主体なら誰でも偽装できるファイル更新時刻のみに基づく（`StarvationProtocol`）ため、外部からの乗っ取りを検知する独立したセキュリティ境界ではなく、同一プロセス内の自己整合性チェックに過ぎないことを明記した。
+
+\*\*`src/agent\_loop.py`（0バイトの空ファイル）を削除\*\* — どこからもimportされないデッドコードだった。
+
+\*\*`cassiels\_veil.CassielsVeil`の通信遮断範囲は多層防御の一層に過ぎない\*\* — `socket.socket`を実行時に丸ごと置き換えてブロックする手法は、プロセスグローバルな単一のパッチであり、別プロセス経由の通信（`subprocess`で起動した外部コマンドによる通信等）や、`socket`モジュールのC拡張層を直接操作する経路は塞がない。§Aで導入したDockerベースのOSレベル隔離（`--network none`）が一次防衛線であり、本モジュールはその代替ではなく追加の一層として位置づける。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。

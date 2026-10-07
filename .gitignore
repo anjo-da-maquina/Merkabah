@@ -11,3 +11,6 @@ incident_report.json
 sanctuary_manifest.json
 zk_audit_trail.json
 remote_ledger_sync.log
+vital_feed.sig
+fake_admin_credentials.py
+anjo-da-maquina

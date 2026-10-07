@@ -1,4 +1,62 @@
-﻿import ast
+﻿"""
+src/ast_scanner.py
+===================
+[2026-10 修正] `src/kamael_judgment.py` の `KamaelInquisitor` および
+`sefer.inquisition()`(Gabriel)で発見・修正したのと同じバグが本モジュールの
+`CognitiveScanner.visit_Call` にも存在した: `node.func` が `ast.Attribute`
+(すなわち `os.system(...)` のような属性アクセス経由の呼び出し)の場合、
+元の実装は `isinstance(node.func, ast.Name)` のチェックで素通りしており、
+`banned_functions`(eval/exec/__import__/compile)に名前が一致する呼び出しの
+うち、裸の名前(bare name)でないものを一切検知できなかった。
+
+さらに、`banned_modules`(os/sys/shutil/subprocess)の検知は `import os` の
+ような直接インポートのみを対象とし、`importlib.import_module("os")` や
+`__import__("os")` 経由の間接ロード、別名インポート(`import os as o`)後の
+利用は検知対象外である。これは denylist 方式の構造的限界であり、完全な
+解決ではない(下記 KNOWN_LIMITATIONS を参照)。
+
+本修正では、Gabriel/Kamaelと同一の「呼び出し式から完全修飾ドット区切り名を
+復元する」ロジックを導入し、`os.system`・`subprocess.Popen` のような完全
+修飾名と、`system`・`Popen` のような裸の属性名の両方を照合する。
+"""
+import ast
+
+# [2026-10] 既知の限界: 本モジュールは denylist 方式の静的解析であり、以下は
+# 検知できない。実運用では OS レベルの隔離(Docker --network none 等)を
+# 一次防衛線とし、本モジュールは多層防御の一層として位置づけること。
+#   - 別名インポート後の間接呼び出し (例: `import os as o; o.system(...)`
+#     は呼び出し式の属性名までは一致するため検知できるが、`banned_modules`
+#     側の import 検知は alias 名ではなく元のモジュール名で判定するため
+#     `visit_Import` 自体は元モジュール名を正しく拾う。ただし
+#     `getattr(__import__("os"), "sys" + "tem")` のような動的な名前解決は
+#     文字列結合・実行時評価を伴うため AST レベルでは一致しない)
+#   - `importlib.import_module("os")` 等、文字列経由のモジュールロード
+#   - 文字列結合やエンコードで関数名/モジュール名自体を動的生成するケース
+KNOWN_LIMITATIONS = (
+    "denylist方式のため、importlib経由の間接ロードや文字列結合による"
+    "動的な名前解決は検知できません。OSレベルの隔離を一次防衛線として"
+    "併用してください。"
+)
+
+
+def _qualified_call_name(func_node) -> str:
+    """
+    呼び出し式のASTノードから完全修飾ドット区切り名を復元する。
+    例: `os.system(...)` の `node.func` → "os.system"
+        `a.b.c(...)` の `node.func` → "a.b.c"
+    復元できない場合（単純な名前以外から始まる式など）は空文字を返す。
+    [src/kamael_judgment.py / sefer.inquisition() の同種修正と同一ロジック]
+    """
+    parts = []
+    node = func_node
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+        return ".".join(reversed(parts))
+    return ""
+
 
 class CognitiveScanner(ast.NodeVisitor):
     """
@@ -11,9 +69,32 @@ class CognitiveScanner(ast.NodeVisitor):
         self.banned_modules = {'os', 'sys', 'shutil', 'subprocess'}
 
     def visit_Call(self, node):
+        qualified_name = _qualified_call_name(node.func)
+
         if isinstance(node.func, ast.Name):
             if node.func.id in self.banned_functions:
                 self.violations.append(f"禁止された動的実行 ({node.func.id})")
+        elif isinstance(node.func, ast.Attribute):
+            # [2026-10 追加] 完全修飾名(例: "os.system")、および裸の属性名
+            # (例: "system")の両方を禁止関数リストと照合する。
+            if node.func.attr in self.banned_functions:
+                self.violations.append(f"禁止された動的実行 ({node.func.attr})")
+            elif qualified_name and qualified_name in self.banned_functions:
+                self.violations.append(f"禁止された動的実行 ({qualified_name})")
+
+        # banned_modules 自体が banned_functions と一致するケース
+        # (例: 将来 banned_functions に "os.system" を直接追加した場合)
+        if (
+            qualified_name
+            and qualified_name in self.banned_functions
+            and qualified_name
+            not in (
+                node.func.id if isinstance(node.func, ast.Name) else None,
+                node.func.attr if isinstance(node.func, ast.Attribute) else None,
+            )
+        ):
+            self.violations.append(f"禁止された動的実行 ({qualified_name})")
+
         self.generic_visit(node)
 
     def visit_Import(self, node):
@@ -25,36 +106,49 @@ class CognitiveScanner(ast.NodeVisitor):
     def visit_ImportFrom(self, node):
         if node.module in self.banned_modules:
             self.violations.append(f"禁止モジュールのインポート ({node.module})")
+        for alias in node.names:
+            full_name = f"{node.module}.{alias.name}" if node.module else alias.name
+            if full_name in self.banned_functions or alias.name in self.banned_functions:
+                self.violations.append(f"禁止された関数の直接インポート ({full_name})")
         self.generic_visit(node)
+
 
 def verify_intent(code_string: str):
     try:
         tree = ast.parse(code_string)
     except SyntaxError:
         raise ValueError("[認知的防壁] 解析不能な構文です。意図的な構文エラーによる難読化の疑いがあります。")
-    
+
     scanner = CognitiveScanner()
     scanner.visit(tree)
-    
+
     if scanner.violations:
         violation_details = ", ".join(scanner.violations)
         raise PermissionError(f"[認知的防壁: 迎撃] 悪意ある意図を検知し、実行前に粉砕しました: {violation_details}")
-    
+
     return "[認知的防壁: 承認] コード内に悪意ある意図は見当たりません。"
+
 
 if __name__ == "__main__":
     print("=== 認知的防壁 (AST Scanner) 実戦テスト ===")
-    
+
     safe_code = "x = 10\ny = 20\nprint(x + y)"
     malicious_code_1 = "import os\nos.system('rm -rf /')"
     malicious_code_2 = "x = 'o' + 's'\neval('__import__(' + x + ').system(\"dir\")')"
-    
+    # [2026-10 追加] 旧実装が素通りさせていたケース: banned_functions への
+    # 属性アクセス経由の呼び出し。`node.func` が `ast.Name` ではなく
+    # `ast.Attribute` になるため、旧実装の isinstance チェックを回避できた。
+    malicious_code_3 = "import builtins\nbuiltins.eval('1+1')"
+    malicious_code_4 = "import os as o\no.system('id')"
+
     codes = {
         "安全な計算コード": safe_code,
         "直接的なOS破壊コード": malicious_code_1,
-        "悪知恵を働かせた難読化攻撃": malicious_code_2
+        "悪知恵を働かせた難読化攻撃": malicious_code_2,
+        "完全修飾呼び出し (旧実装で検知漏れ)": malicious_code_3,
+        "別名インポート経由の呼び出し": malicious_code_4,
     }
-    
+
     for name, code in codes.items():
         print(f"\n[{name}] をスキャン中...")
         try:
