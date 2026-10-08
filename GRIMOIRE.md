@@ -257,6 +257,20 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### Q. `assets/demo.mp4`の削除、`zk\_audit\_report.xml`のGit管理除外、`architecture.html`の旧プロジェクト名修正
+
+§Pで「ユーザー判断待ち」として報告した2点につき、ユーザー承認を得て対応した。
+
+\*\*削除: `assets/demo.mp4`(約11MB)\*\* — `README.md`・`architecture.html`のいずれからも参照されておらずリポジトリを不必要に肥大化させていたため削除した。
+
+\*\*`.gitignore`に`zk\_audit\_report.xml`を追加しGit管理から除外\*\* — `adapters/junit\_xml\_exporter.py`・`angels/heavenly\_tablets\_zkp.py`がCI実行時に都度生成する成果物であり、`zk\_audit\_trail.json`(既に`.gitignore`対象)と対になるファイルであるにもかかわらず、こちらは対象外になっていた。コミット済みだった古い実行結果のスナップショットは`git rm --cached`でGit管理のみ外した(ローカルファイルは残置)。
+
+\*\*修正: `architecture.html`に残っていた旧プロジェクト名`Merkabah`\*\* — `<title>`・見出し(`<h1>`)・本文中の3箇所に、改名(Merkabah→Pleroma)前の旧名称がそのまま残っていた。いずれも単純な名称置換で`Pleroma`に修正した。
+
+\*\*確認済み(報告のみ・本修正では変更せず)\*\*: `architecture.html`はRaphael/Gabriel/Michaelの3要素と`rubric.json`・`homilies/`プラグイン機構を中心に説明する、現行実装(30件超の`angels/`検査・Sanctum・AegisSystem等)よりかなり早期の構想段階の設計を記述したドキュメントだった。`rubric.json`・`homilies/`はいずれも`.gitignore`にエントリがあるが、どちらも現在のリポジトリ内には実体が存在せず、どの`.py`ファイルからも参照されていない(未実装の将来機能、または構想段階で後に別アーキテクチャに置き換わった名残と推測される)。名称の修正のみ行い、内容全体を現行アーキテクチャに合わせて書き直すかどうかはユーザー判断に委ねる。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
