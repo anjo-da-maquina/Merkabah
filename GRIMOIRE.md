@@ -208,6 +208,18 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### N. `angels/`配下の棚卸し、および`.github/workflows/anjo\_da\_maquina\_protocol.yml`の文字コード破損修正
+
+2026-10、`src/`の是正に続き、`angels/`配下37ファイルおよびそれを配線する`.github/workflows/anjo\_da\_maquina\_protocol.yml`の棚卸しを行った。`angels/\_common.py`のdocstringによれば、このディレクトリは以前別途刷新（33ファイル中28ファイルが`print('initialized...')`のみの中身のないプレースホルダーだった状態から、名称が示す役割に対応する実質的な検査へ置き換え済み）されており、`src/`の「実運用ループ」ほどの深刻な重複は見つからなかった。見つかった問題は以下2点。
+
+\*\*削除: `angels/fifth\_seal\_samson.py`\*\* — 他の全ての天使スクリプトが`angels/\_common.py`の`report\_pass`/`report\_fail`による検査・レポート機構に統合されているのに対し、本ファイルのみ`CHAOS\_MODE`環境変数を読んで劇的な文言（ネフィリムの金銭トレーサビリティ放出、スリーパーマルウェア活性化等、いずれも明記の通り「シミュレート」）を`print`し`sys.exit(1)`するだけで、`\_common.py`を一切importせず実質的な検査を何も行っていなかった。§Aの`active\_defense.py`削除と同一の判断基準（実体を持たないセキュリティシアター）により削除し、ワークフローの対応ステップ(3.1)も削除した。なお`angels/lucifer\_rebellion.py`も同じ`CHAOS\_MODE`を読むが、こちらは実際に難読化攻撃ペイロードを`run\_code\_against\_sefer()`でSeferに対して実行し、その結果（突破数）に基づいて`report\_fail`するため、`CHAOS\_MODE`という設計自体は正当であることを確認した。
+
+\*\*レビュー済み・変更不要: `camael\_shield.py`/`lucifer\_rebellion.py`間の攻撃ペイロード文字列の重複\*\* — 両ファイルは同種の難読化`os.system`呼び出しパターンを定数として共有するが、検証している性質が異なる。`camael\_shield.py`は「静的検査(Gabriel)または動的検査(Sanctum)のいずれかで必ず捕捉されること」（多層防御の論理和）を検証し、`lucifer\_rebellion.py`は`CHAOS\_MODE`下での動的検査単体の突破件数を検証する。`seraphim\_consensus.py`はマルチLLM異端検知という全く別の関心事であり、重複ではない。意図的な設計であり是正不要と判断した。
+
+\*\*修正: `.github/workflows/anjo\_da\_maquina\_protocol.yml`の日本語ステップ名・コメントの文字コード破損\*\* — `run:`で実行されるコマンド自体は無事だったが、`name:`・`description:`・`echo`の日本語文字列が、UTF-8バイト列を誤ってShift\_JIS/CP932として解釈し再度UTF-8で保存したことに起因する典型的な文字化け（mojibake）を起こしていた（例: 本来`máquina`の`á`であるべき`\xc3\xa1`が、Shift\_JISの半角カナ単バイトとして誤読され`ﾃ｡`として保存されていた）。バイト単位の機械的逆変換（corrupted文字列をCP932でエンコードしUTF-8でデコードし直す）を試みたが、一部の行（特にギリシャ文字`Β`やラテン拡張の`´`等、本来存在しないはずの文字を含む行）では一貫して失敗し、複数世代にわたる非可逆な文字化けが疑われたため、全行の機械的逆変換は断念した。代わりに、各ステップが実行する`angels/*.py`の内容（既に本棚卸しで全件読了済み）と、機械的逆変換が成功した行（約20行）から復元した文字化けパターンの対応表を手掛かりに、全ての`name:`/`description:`/`echo`文字列を正しい日本語として手動で書き直した。YAML構文としての妥当性（`yaml.safe_load`でのパース、ステップ数が意図した40件と一致すること）は確認済みだが、意味内容の復元は機械的な逆変換ではなく文脈からの再構成であるため、元のコミット時点の原文と一字一句完全に一致する保証はない。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
