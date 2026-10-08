@@ -232,6 +232,31 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### P. リポジトリルート直下の未棚卸しファイルの整理
+
+2026-10、`src/`・`angels/`・`sefer/`・`anjo\_interceptor/`・`adapters/`・`tartarus/`・`tools/`に続き、これまで未調査だったリポジトリルート直下のファイル群を棚卸しした。
+
+\*\*削除(旧プロジェクト名`merkabah`への参照が残る死んだコード)\*\*:
+\- `test\_archangels.py` / `test\_doctrines.py` / `test\_parasite.py` / `demo\_honeypot.py` — いずれも`tests/`配下ではなくリポジトリルート直下に置かれ、存在しない`merkabah`モジュールを`import`していた(`find . -iname "merkabah\*"`で確認した通り、現リポジトリ内に`merkabah`という名のモジュールは一切存在しない)。実行すれば`ModuleNotFoundError`で即座に失敗する。`git log --follow`で確認した通り、これらは本リポジトリの最初のコミット(`4f1b48a`、Merkabahからの改名後にリポジトリ全体を一括投入したコミット)の時点から既に死んでいた、改名時に取り残された残骸であり、他のどのファイルからも参照されていない(grep済み)。
+
+\*\*削除(旧プロジェクト名の空の残骸ファイル)\*\*:
+\- `chotam-merkabah` — 0バイト、拡張子なし。旧プロジェクト名`merkabah`を含むファイル名で、内容は空、他のどこからも参照されていない。
+\- `README\_UNDERGROUND.md` — 0バイト。内容が一切なく、他のどこからも参照されていない。
+
+\*\*削除(機能として一切配線されていない未使用スタブ)\*\*:
+\- `registry.json` — `{"verified\_clients": {}, "revoked\_clients": []}`という構造を持つが、`registry.json`・`verified\_clients`・`revoked\_clients`のいずれの文字列も、`.py`/`.md`/`.yml`/`.html`のどのファイルからも一切参照されていない(grep済み)。`maquina\_gatekeeper.py`のクライアント証明書機構とは別に、クライアントの検証済み/失効済み状態を追跡する機能が将来的に意図されていたと推測されるが、配線された形跡が一切なく、現時点では実体を持たない死んだスタブと判断した。
+
+これら7ファイルはいずれも上記コミット`4f1b48a`以降一度も変更されておらず、`--follow`付きの個別`git log`で確認した通り独自の変更履歴を持たない。
+
+\*\*修正: `COMMANDS.md`の証明書再発行手順が§Oの修正前の挙動を記述したまま残存していた\*\* — §Oで`adapters/provisioning\_agent.py`を「提案キューイング＋人間承認」方式に修正したにもかかわらず、`COMMANDS.md`の「🔑 証明書（ataraxia\_certificate.json）の再発行」節は、修正前の「`provisioning\_agent.py`実行後、`ataraxia\_certificate.json`と`maquina\_gatekeeper.py`の両方を即座にコミットする」という旧い自己署名の運用手順を記述したまま残っていた。`tools/promote\_ledger\_seal.py`・`tools/promote\_shield\_seal.py`と同じ形式で、`tools/promote\_provisioning\_seal.py`による`--list`/`--approve`/`--reject`の手順に書き直した。
+
+\*\*確認済み(変更不要・削除候補ではあるが本修正の範囲外として報告のみ)\*\*:
+\- `assets/demo.mp4`(約11MB) — `README.md`・`architecture.html`のいずれからも参照されていない。リポジトリを11MB肥大化させているが、ユーザー自身が保持しているデモ録画である可能性があり、メディアファイルの削除は後戻りしにくい判断のため、本修正では削除せずユーザーへの報告事項とした。
+\- `MANIFEST.in`・`shield\_rules.json`・`hooks/pre-commit`・`dummy\_secrets/`・`COMMANDS.md`(証明書節以外)・`architecture.html` — いずれも実際に参照され機能している、または意図的なハニーポット/ドキュメントであることを確認した。`sefer.egg-info/`は`.gitignore`の`\*.egg-info/`パターンにより元々Git管理外であることを確認した(pip editable installのビルド成果物)。
+\- `zk\_audit\_report.xml` — `adapters/junit\_xml\_exporter.py`・`angels/heavenly\_tablets\_zkp.py`が生成する成果物だが、`.gitignore`の対象になっておらずコミット済みの内容は古い実行結果のスナップショットになっている。`sefer/audit\_chain.jsonl`と同種の「テスト実行で汚染されるがgit管理されている」ファイルであり、本修正の範囲外として変更しなかった(将来的に`.gitignore`への追加を検討する価値はある)。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
