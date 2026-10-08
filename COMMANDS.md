@@ -82,12 +82,27 @@ notepad sefer/raziel_ledger.json
 ```
 
 ## 🔑 証明書（ataraxia_certificate.json）の再発行
+[2026-10改訂] 以前は`provisioning_agent.py`実行後に`ataraxia_certificate.json`と
+`maquina_gatekeeper.py`の両方を即座にコミットする運用だったが、これは提案者が
+自分自身を無条件に承認済みにできてしまう自己署名の構造的欠陥だったため、
+Armageddon・Zadkielと同じ「提案キューイング＋人間承認」パターンに改めた
+（詳細はGRIMOIRE.md §O参照）。
+
 ローカルマシンでのみ実行すること（ハードウェア指紋がマシン固有のため）。
 ```
 python adapters/provisioning_agent.py
 ```
-実行後、`ataraxia_certificate.json` と `maquina_gatekeeper.py`（公開鍵が自己同期される）
-の両方をコミットすること。
+これにより`sefer/provisioning_pending.json`に提案がキューイングされる。
+`maquina_gatekeeper.py`・`ataraxia_certificate.json`はまだ変更されない。
+
+### 承認待ち提案の確認・昇格
+```
+python tools/promote_provisioning_seal.py --list
+python tools/promote_provisioning_seal.py --approve "<client_id>"
+python tools/promote_provisioning_seal.py --reject  "<client_id>"
+```
+`--approve`実行後、更新された`ataraxia_certificate.json`と`maquina_gatekeeper.py`
+（公開鍵が反映される）の両方をコミットすること。
 
 ## 📦 経典（公開配布物）のビルドと検査
 pip配布用の`sefer`単体パッケージ（経典）を実際にビルドし、ライセンス証明書機構
