@@ -271,6 +271,20 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### R. `Dockerfile`のCOPY漏れを修正(ビルドしても大半のテストが失敗していた不備)
+
+\*\*事実確認\*\*: `git log --oneline -- Dockerfile`より、本ファイルはリポジトリ最初のコミット(`4f1b48a`)以来一度も変更されておらず、今回の一連の棚卸し・修正が原因で後から壊れたものではなく、\*\*最初から一度も正しく動く状態になったことがない\*\*ファイルだったことを確認した(ユーザーへの事実確認に対する回答として記録)。
+
+\*\*不備の内容\*\*: 修正前は`COPY requirements.txt .`・`COPY maquina\_gatekeeper.py .`・`COPY tests/ tests/`の3点のみをイメージにコピーしており、テストが実際に`import`する`sefer/`・`angels/`・`adapters/`・`anjo\_interceptor/`・`src/`・`tartarus/`・`tools/`が一切含まれていなかった。Dockerが使えない本環境の制約上、実際の`docker build`では検証できなかったため、`.dockerignore`相当の除外ルールを適用した一時ディレクトリへ`cp`で再現し、そこで`mini\_pytest.py`シムを実行して実機相当の検証を行った。修正前の構成を再現した場合は`PASS=1 FAIL=25 ERROR=12`で大半が`ModuleNotFoundError`により失敗することを確認し、不備の実在を裏付けた。
+
+\*\*修正\*\*: 個別ファイルの列挙は新しいディレクトリの追記漏れを構造的に誘発する(今回の不備そのものがその実例)ため、`COPY . .`でリポジトリ全体をコピーし、イメージに含めたくないもの(`.git`・`.github`・ビルド/キャッシュ生成物・ホスト/マシン固有の`ataraxia\_certificate.json`・テスト実行で汚染される各種監査ログ等)は新設した`.dockerignore`側で除外する方式に変更した。`ataraxia\_certificate.json`をイメージに焼き込まない方針は、`docker-compose.yml`が同ファイルを実行時に読み取り専用でマウントする既存の設計(ハードウェア指紋がマシン固有であるため)と整合する。
+
+修正後の構成を同様に`cp`で再現し`mini\_pytest.py`を実行した結果、本修正前の(Dockerを経由しない)ローカル実行と同一の`PASS=78 FAIL=0 ERROR=2`(既存の無関係なERROR2件のみ)となり、修正を確認した。
+
+\*\*今回は変更しなかった点(ユーザーへの報告のみ)\*\*: `docker-compose.yml`の`network\_mode: "none"`はそのまま維持した。テストスイート(`tests/\*.py`)はいずれも実ネットワーク通信を直接行わない(grep済み)ため、デフォルトの`CMD ["pytest", "tests/", "-v", "-s"]`の実行自体はネットワーク遮断下でも成立する。一方、`docker-compose.yml`がマウントする`oracle\_output/`ディレクトリは、どの`.py`ファイルからも書き込み先として参照されておらず(grep済み)、実運用エージェント(`src/ollama\_agent\_loop.py`等、ローカルOllamaサーバーへのネットワーク到達が必要)を本コンテナで動かす用途は現状の設定とは整合しない。本コンテナの実際の用途を「テスト専用」と定めるか「実運用エージェント用」と定めるかは設計判断であり、今回はテストが通ることの確認のみに修正範囲を留めた。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
