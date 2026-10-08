@@ -1,63 +1,87 @@
-﻿import rsa
+"""
+adapters/provisioning_agent.py
+===============================
+[脆弱性修正 2026-10] 以前の実装は、この場で新規生成したRSA鍵対の
+公開鍵を使って `maquina_gatekeeper.py` の `MAQUINA_PUBLIC_KEY_PEM`
+（証明書検証の信頼の起点）を直接上書きし、同じ鍵対の秘密鍵で自ら
+署名した証明書(`ataraxia_certificate.json`)をそのまま有効化していた。
+
+これは「審査者と被審査者が同一」という自己署名の構造的欠陥であり、
+`enforce_maquina_seal`（maquina_gatekeeper.py）によるライセンス
+証明書チェックは、本スクリプトを実行できる者なら誰でも自分自身を
+無条件に「承認済み」にできてしまい、実質的に何の認可も提供していな
+かった。§Fの`ZadkielDominion`（LLM提案ルールの無審査反映）や
+Armageddon Engineの`raziel_ledger_pending.json`で既に修正したのと
+同種の脆弱性である。
+
+本修正では、鍵対の生成と証明書ペイロードの署名はこの場で行うが、
+`maquina_gatekeeper.py`の書き換えと`ataraxia_certificate.json`の
+発行は行わず、`sefer/provisioning_pending.json`への提案キューイング
+に留める。人間が`tools/promote_provisioning_seal.py`で内容
+（hardware_fingerprint・client_id・有効期限）を確認し明示的に
+承認して初めて、信頼の起点（公開鍵）が更新され証明書が発行される。
+"""
+import rsa
 import json
 import datetime
 import base64
 import os
 import sys
-import re
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maquina_gatekeeper import get_absolute_hardware_fingerprint
 
-def provision_sanctuary():
-    print("\n[Provisioning Agent] 新たな鍵対を生成し、この環境を承認します...")
-    # 2048bitの強力なRSA鍵対を新規生成
+PENDING_PATH = os.path.join(os.path.dirname(__file__), "..", "sefer", "provisioning_pending.json")
+
+
+def _load_pending():
+    if not os.path.exists(PENDING_PATH):
+        return []
+    with open(PENDING_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _save_pending(entries):
+    os.makedirs(os.path.dirname(PENDING_PATH), exist_ok=True)
+    with open(PENDING_PATH, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2, ensure_ascii=False)
+
+
+def provision_sanctuary(client_id="anjo-local-tester"):
+    print("\n[Provisioning Agent] 新たな鍵対を生成し、承認を提案します...")
+    # 2048bitの強力なRSA鍵対を新規生成（この場限り。秘密鍵は保存しない）
     pubkey, privkey = rsa.newkeys(2048)
     pubkey_pem = pubkey.save_pkcs1().decode('utf-8')
 
-    # 環境の複合指紋を抽出
     fingerprint = get_absolute_hardware_fingerprint()
-    # 7日間の寿命（TTL）を設定
     valid_until = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + "Z"
 
     payload = {
-        "client_id": "anjo-local-tester",
+        "client_id": client_id,
         "hardware_fingerprint": fingerprint,
         "valid_until": valid_until
     }
 
-    # 秘密鍵で署名
     payload_str = json.dumps(payload, sort_keys=True)
     signature = rsa.sign(payload_str.encode('utf-8'), privkey, 'SHA-256')
     signature_b64 = base64.b64encode(signature).decode('utf-8')
 
-    cert = {
+    entry = {
+        "status": "PENDING_HUMAN_REVIEW",
+        "requested_at": datetime.datetime.utcnow().isoformat() + "Z",
         "payload": payload,
-        "signature": signature_b64
+        "signature": signature_b64,
+        "public_key_pem": pubkey_pem.strip(),
     }
 
-    # 証明書を発行
-    with open("ataraxia_certificate.json", "w", encoding="utf-8") as f:
-        json.dump(cert, f, indent=2)
+    pending = _load_pending()
+    pending.append(entry)
+    _save_pending(pending)
 
-    # ゲートキーパー(防壁)の中枢に、新たな公開鍵を直接埋め込む(自己改変)
-    gatekeeper_path = "maquina_gatekeeper.py"
-    with open(gatekeeper_path, "r", encoding="utf-8") as f:
-        code = f.read()
+    print(f"[Provisioning Agent] 承認待ちキュー({PENDING_PATH})に提案を追加しました。")
+    print("[Provisioning Agent] maquina_gatekeeper.py・ataraxia_certificate.jsonはまだ変更されていません。")
+    print(f"[Provisioning Agent] 人間が 'python tools/promote_provisioning_seal.py --approve {client_id}' で承認するまで有効になりません。")
 
-    new_code = re.sub(
-        r'MAQUINA_PUBLIC_KEY_PEM = """.*?-----END RSA PUBLIC KEY-----"""',
-        f'MAQUINA_PUBLIC_KEY_PEM = """{pubkey_pem.strip()}"""',
-        code,
-        flags=re.DOTALL
-    )
-
-    with open(gatekeeper_path, "w", encoding="utf-8") as f:
-        f.write(new_code)
-
-    print("[Provisioning Agent] ataraxia_certificate.json を発行しました。")
-    print("[Provisioning Agent] 防壁の中枢（公開鍵）を自動同期しました。")
-    print(f"[Provisioning Agent] 平穏の有効期限: {valid_until}")
 
 if __name__ == '__main__':
     provision_sanctuary()

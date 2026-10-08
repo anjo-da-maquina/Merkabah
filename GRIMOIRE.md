@@ -220,6 +220,18 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### O. `adapters/provisioning\_agent.py`の自己署名脆弱性を修正
+
+2026-10、`src/`・`angels/`に続き`sefer/`・`anjo\_interceptor/`・`adapters/`・`tartarus/`・`tools/`の棚卸しを行った。このうち`adapters/provisioning\_agent.py`に、既に修正済みの§F(`ZadkielDominion`)・Armageddon Engine(`raziel\_ledger\_pending.json`)と同種の、より深刻な脆弱性を発見した。
+
+\*\*脆弱性の内容\*\*: `maquina\_gatekeeper.py`の`enforce\_maquina\_seal`は、`ataraxia\_certificate.json`が`MAQUINA\_PUBLIC\_KEY\_PEM`(同ファイルにハードコードされた信頼の起点)で検証可能な署名を持つことを要求する、ライセンス証明書機構である(`angels/metatron\_scripture\_seal.py`のdocstringが示す通り、これは`sefer`単体のゼロトラスト監査フックとは別系統の、運用環境を限定するための仕組み)。修正前の`provisioning\_agent.provision\_sanctuary()`は、(1)この場で新規にRSA鍵対を生成し、(2)その秘密鍵で証明書ペイロードに自ら署名し、(3)`maquina\_gatekeeper.py`の`MAQUINA\_PUBLIC\_KEY\_PEM`を正規表現置換でその場で生成した公開鍵に直接書き換え、(4)署名済み証明書をそのまま`ataraxia\_certificate.json`として発行していた。審査者(信頼の起点)と被審査者(証明書の発行者)が同一であるため、本スクリプトを実行できる者なら誰でも無条件に自分自身を「承認済み」にでき、ライセンス証明書機構は実質的に何の認可も提供していなかった。
+
+\*\*修正\*\*: 鍵対生成と署名はその場で行うが、`maquina\_gatekeeper.py`の書き換えと証明書の発行は行わず、`sefer/provisioning\_pending.json`への提案キューイングに留めるよう変更した。新設した`tools/promote\_provisioning\_seal.py`で、人間が提案内容(client\_id・hardware\_fingerprint・有効期限)を確認した上で明示的に`--approve`して初めて、信頼の起点の更新と証明書発行が行われる。`tools/promote\_shield\_seal.py`・`tools/promote\_ledger\_seal.py`と同一のパターン。`tests/test\_provisioning\_approval\_flow.py`で回帰を固定した(実行環境に`rsa`パッケージ(PyPI)がインストールできないため、署名の暗号学的正しさ自体はテスト範囲外とし、「どのファイルが・いつ・何を書き換えるか」という構造を検証する疑似実装で代替している)。
+
+\*\*その他確認済み(変更不要)\*\*: `adapters/excel\_to\_yaml\_parser.py`・`adapters/external\_qa\_wrapper.py`は、`angels/\_common.py`のdocstringが言及する刷新前の`print('initialized...')`プレースホルダーのまま残存していることを確認したが、CIワークフロー上は情報収集的な位置づけのステップであり、`angels/`の検査ステップ群のような合否判定の実体を持つ必要はないため、今回は現状維持とした。`sefer/\_\_init\_\_.py`(Sanctum)・`anjo\_interceptor/intent\_checker.py`・`tartarus/armageddon.py`・`tartarus/armageddon\_core.py`・`tools/`配下の各ツールは実質的な重複・演出のみのコードは見つからなかった。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
