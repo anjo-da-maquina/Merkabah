@@ -111,22 +111,14 @@
             <p>Zero-Trust OS Fortress for Local AI Agents</p>
         </div>
 
-        <div class="section-title">The Canon (Core Absolute Defense)</div>
-        
-        <div class="grid">
-            <!-- Raphael -->
-            <div class="card raphael">
-                <div class="icon">👁️</div>
-                <h3>Raphael (Environment Seal)</h3>
-                <p>Audits the execution environment upon startup. Prevents the AI from operating in contaminated or unapproved external cloud CI/CD pipelines.</p>
-                <div class="tech-stack">os.getenv() validation</div>
-            </div>
+        <div class="section-title">The Canon (Core Absolute Defense — sefer.Sanctum)</div>
 
+        <div class="grid">
             <!-- Gabriel -->
             <div class="card gabriel">
                 <div class="icon">📜</div>
                 <h3>Gabriel (AST Inquisition)</h3>
-                <p>Parses the Abstract Syntax Tree (AST) of AI-generated code before execution. Detects and violently rejects the summoning of banned modules.</p>
+                <p>Parses the Abstract Syntax Tree (AST) of AI-generated code before execution via <code>sefer.inquisition()</code>. Detects and rejects banned imports and calls, including fully-qualified forms like <code>os.system(...)</code>.</p>
                 <div class="tech-stack">ast.parse() pre-execution</div>
             </div>
 
@@ -134,30 +126,66 @@
             <div class="card michael">
                 <div class="icon">⚔️</div>
                 <h3>Michael (OS Deep Hook)</h3>
-                <p>The final absolute defense. Uses Python's native audit hooks to physically intercept and block unauthorized system calls deep within the OS at runtime.</p>
+                <p>The final absolute defense inside <code>sefer.Sanctum</code>. Uses Python's native audit hooks (<code>_michael_absolute_defense</code>) to physically intercept destructive syscalls, fd-level write bypasses, and unauthorized network connections at runtime. Default-deny: unknown events are blocked unless explicitly allowed.</p>
                 <div class="tech-stack">sys.addaudithook() runtime</div>
+            </div>
+
+            <!-- Raphael / maquina_gatekeeper -->
+            <div class="card raphael">
+                <div class="icon">👁️</div>
+                <h3>Raphael (License &amp; Environment Seal)</h3>
+                <p>A separate layer (<code>maquina_gatekeeper.py</code>) that gates execution on a hardware-fingerprinted, RSA-signed certificate (<code>ataraxia_certificate.json</code>) and refuses to operate in an unverified cloud CI environment. Certificates are no longer self-issued: a proposal is queued and must be explicitly approved by a human via <code>tools/promote_provisioning_seal.py</code>.</p>
+                <div class="tech-stack">RSA signature + hardware fingerprint</div>
             </div>
         </div>
 
-        <div class="flow-arrow">⬇️️ Defense Extensibility</div>
+        <div class="flow-arrow">⬇️️ Runtime Isolation for Executed Code</div>
 
-        <div class="section-title">Local Doctrines (Extensibility)</div>
+        <div class="section-title">AegisSystem (4-Layer Execution Guard)</div>
 
         <div class="grid">
-            <!-- The Rubrics -->
+            <!-- IntentInterceptor -->
             <div class="card extension">
-                <div class="icon">📕</div>
-                <h3>The Rubrics</h3>
-                <p>A declarative configuration file (`rubric.json`) at the project root. Allows developers to define project-specific banned modules and events without altering the core Canon.</p>
-                <div class="tech-stack">JSON Configuration</div>
+                <div class="icon">🪤</div>
+                <h3>IntentInterceptor</h3>
+                <p>Honeypot and directory-traversal detection (<code>anjo_interceptor/</code>). Flags an AI agent that reaches for fixed honeypot files under <code>dummy_secrets/</code> or a dynamically generated <code>phantom_prison</code>, or that games the stated intent of a task.</p>
+                <div class="tech-stack">Static pattern + honeypot files</div>
             </div>
 
-            <!-- The Homilies -->
+            <!-- WorkspaceJail -->
             <div class="card extension">
-                <div class="icon">⛪</div>
-                <h3>The Homilies</h3>
-                <p>A designated directory (`homilies/`) for dropping custom Python plugins (MODs). Pleroma dynamically loads and preaches these custom validation logics at startup.</p>
-                <div class="tech-stack">Dynamic Importlib</div>
+                <div class="icon">🧱</div>
+                <h3>WorkspaceJail</h3>
+                <p>Physical path containment via <code>secure_resolve()</code>, enforced by prefix-matching a task's declared <code>workspace_root</code> — independent of, and a backstop for, Sanctum's audit-hook boundary.</p>
+                <div class="tech-stack">Path prefix validation</div>
+            </div>
+
+            <!-- Sandalphon -->
+            <div class="card extension">
+                <div class="icon">📦</div>
+                <h3>Sandalphon (Docker Jail)</h3>
+                <p>OS-level dynamic execution verification: AI-generated code actually runs inside a Docker container with <code>--network none</code>, the last and mandatory layer against obfuscated or dynamically-generated attacks that static analysis can't see.</p>
+                <div class="tech-stack">Docker --network none</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">⬇️️ Continuous Verification &amp; Evolution</div>
+
+        <div class="section-title">The Angels (Blue-Team CI Audit Layer)</div>
+
+        <div class="grid">
+            <div class="card extension">
+                <div class="icon">👼</div>
+                <h3>angels/ — ~34 Verification Scripts</h3>
+                <p>Each file under <code>angels/</code> performs one real, independently-runnable audit (hardware signing, TEE memory, nonce replay, secret-leak canary, audit-trail integrity, ZKP generation, and more) wired into <code>.github/workflows/anjo_da_maquina_protocol.yml</code>. A shared <code>angels/_common.py</code> provides the pass/fail reporting contract every script follows.</p>
+                <div class="tech-stack">GitHub Actions + pytest-independent checks</div>
+            </div>
+
+            <div class="card michael">
+                <div class="icon">⚔️🤖</div>
+                <h3>Armageddon Engine (Self-Play Evolution)</h3>
+                <p><strong>Lucifer</strong> (red-team AI) forges new attack mutations against Sanctum; <strong>Metatron</strong> (blue-team QA) scores each breach and proposes a new ban rule. Proposals are never applied directly — they're queued to <code>sefer/raziel_ledger_pending.json</code> and require explicit human approval via <code>tools/promote_ledger_seal.py</code> before reaching the live ban list.</p>
+                <div class="tech-stack">LLM red/blue self-play + human-gated promotion</div>
             </div>
         </div>
     </div>
