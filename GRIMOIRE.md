@@ -295,6 +295,18 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### T. `architecture.html`の内容を現行実装に合わせて全面的に書き直し
+
+§Qで名称修正のみに留め、ユーザー判断待ちとして報告していた「内容全体を現行アーキテクチャに合わせて書き直すか」について、ユーザー承認を得て実施した。
+
+\*\*事実確認\*\*: 修正前の`architecture.html`は、Raphael/Gabriel/Michaelの3カード構成の「Canon」節に続けて、`rubric.json`・`homilies/`という外部プラグイン機構を中心に説明する「Local Doctrines」節を持っていた。しかし`rubric.json`・`homilies/`はリポジトリ内に実体が存在せず(§Qで確認済み)、どの`.py`ファイルからも参照されていない構想段階の記述だった。Gabriel(`sefer.inquisition()`によるASTスキャン)とMichael(`sys.addaudithook`ベースの`\_michael\_absolute\_defense`)の説明内容自体は現行の`sefer/\_\_init\_\_.py`の実装と一致していたが、Raphaelの説明(「環境監視」)は実際には`sefer`パッケージの外にある別モジュール`maquina\_gatekeeper.py`(RSA署名+ハードウェア指紋による証明書ゲート、§Oで人間承認フローに修正済み)の役割に近く、不正確だった。また`src/aegis\_system.py`(`AegisSystem`、4層構成の実行ガード)と`angels/`配下の約34件のCI検査スクリプト、`tartarus/armageddon.py`のLucifer/Metatron自己対戦サイクルは、いずれも現行実装の中核でありながら本ドキュメントに一切記載が無かった。
+
+\*\*修正\*\*: `<body>`内容を3節構成に書き直した。(1)「The Canon (Core Absolute Defense — sefer.Sanctum)」: Gabriel・Michaelは実装と一致していたため`sefer.inquisition()`・`\_michael\_absolute\_defense`への言及を補強する形で維持し、Raphaelは`maquina\_gatekeeper.py`の役割(ライセンス・環境シール)として再定義、§Oの人間承認フローへの言及も追加した。(2)「AegisSystem (4-Layer Execution Guard)」: IntentInterceptor(`anjo\_interceptor/`、ハニーポット・パストラバーサル検知)・WorkspaceJail(`secure\_resolve()`によるパス封じ込め)・Sandalphon(`--network none`のDockerジェイル)の3カードを新設し、存在しなかった「Local Doctrines」節を置き換えた。(3)「The Angels (Blue-Team CI Audit Layer)」: `angels/`配下の約34件の検査スクリプトと、Lucifer/Metatronによる自己対戦進化サイクル(提案は`tools/promote\_ledger\_seal.py`による人間承認を経るまで適用されない、既存の人間承認ゲートパターンと一致)を新設した。既存のCSSクラス(`card raphael`/`gabriel`/`michael`/`extension`、`.icon`・`.tech-stack`)のみを再利用し、新規CSSの追加は行っていない。
+
+\*\*検証\*\*: `html.parser`による開始/終了タグの対応チェックで構文的に整形が崩れていないことを確認した。`MANIFEST.in`の`exclude architecture.html`は内容変更の影響を受けないため変更不要であることを確認した。`mini\_pytest.py`実行結果は本修正前と同一の`PASS=78 XFAIL=2 FAIL=0 ERROR=2`(既存の無関係なERROR2件のみ)であり、本ファイルを直接参照するテストが無いことと整合する想定通りの結果だった。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
