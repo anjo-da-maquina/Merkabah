@@ -81,6 +81,37 @@ cat tartarus/akashic_records.json
 notepad sefer/raziel_ledger.json
 ```
 
+## 🤖 実運用エージェントループ（ローカルLLMにタスクを実行させる）
+`sefer.Sanctum`・`AegisSystem`（Gabriel + IntentInterceptor + Sandalphon）・
+`maquina_gatekeeper`の全防御層を統合した参照実装。いずれも`jail_workspace/`
+内のみで動作する隔離デモタスクを同梱している。
+
+**前提条件（両方とも必要）**:
+1. Dockerデーモンが起動していること（Sandalphon層がDockerコンテナ内で
+   AIの出力コードを動的実行検証するため。デーモン不在時はゼロトラスト
+   方針によりフェイルクローズ=即PermissionErrorで全実行を拒否する）
+2. Ollama版を使う場合は、事前に対象モデルを`ollama pull llama3.1`等で
+   取得済みであること
+
+**Ollama（ローカルLLM）版**:
+```
+python src/ollama_agent_loop.py
+```
+デフォルトモデルは`llama3.1`。別モデルを使う場合は
+`AnjoOllamaExecutor(model_name="...")`を変更する。
+
+**OpenAI API版**:
+`src/openai_agent_loop.py`は`OpenAIAnjoExecutor`クラスのみを提供するテンプレートで、
+単体の実行用`__main__`は無い。呼び出し側で以下のように使う。
+```python
+from src.openai_agent_loop import OpenAIAnjoExecutor
+
+agent = OpenAIAnjoExecutor(workspace_root="jail_workspace", api_key="sk-...")
+agent.run_task("タスクの指示内容")
+```
+`openai`パッケージは`run_task()`実行時に初めてimportされるため、未インストールでも
+本ファイルをimportするだけなら例外は発生しない。
+
 ## 🔑 証明書（ataraxia_certificate.json）の再発行
 [2026-10改訂] 以前は`provisioning_agent.py`実行後に`ataraxia_certificate.json`と
 `maquina_gatekeeper.py`の両方を即座にコミットする運用だったが、これは提案者が
