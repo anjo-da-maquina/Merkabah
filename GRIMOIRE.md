@@ -307,6 +307,20 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### U. `COMMANDS.md`に実運用エージェントループ(`ollama\_agent\_loop.py`/`openai\_agent\_loop.py`)の起動手順を追記、既存ERROR2件の原因を調査
+
+ユーザーから「さらに増築できるところはないか」との依頼を受けて棚卸しを行い、実装済みだが未ドキュメント化だった機能の補完と、`mini\_pytest.py`実行結果に残っていた既存ERROR2件の原因調査を行った。
+
+\*\*追記: `src/ollama\_agent\_loop.py`・`src/openai\_agent\_loop.py`の起動手順\*\*。両ファイルとも実装自体は既に完成しており(Sanctum/AegisSystem/maquina\_gatekeeperの全防御層を統合済み)、`README.md`にアーキテクチャの説明はあったが、`COMMANDS.md`にはこれらを実際に動かすコマンドの記載が一切無かった。`ollama\_agent\_loop.py`は`python src/ollama\_agent\_loop.py`で直接実行可能、`openai\_agent\_loop.py`は`\_\_main\_\_`を持たないテンプレートクラスのため呼び出し側コードの例を示した。両方ともDockerデーモンの起動が前提(Sandalphon層がコンテナ内で動的実行検証を行うため、デーモン不在時はフェイルクローズで全実行を拒否する)である旨も明記した。
+
+\*\*調査: `mini\_pytest.py`実行結果の既存ERROR2件の原因\*\*(いずれも本リポジトリのバグではなく、検証環境側の制約であることを確認。修正は行っていない):
+\- `tests/test\_openai\_agent\_loop\_template.py`: `ModuleNotFoundError: No module named 'rsa'`。`rsa==4.9`は`requirements.txt`に正しく記載されているが、本検証環境はネットワークが遮断されており(`pip install`が名前解決エラーで失敗)インストールできない。リポジトリ側の不備ではなく環境側の制約。
+\- `tests/test\_sanctuary.py`: `TypeError: _Mark.xfail() got an unexpected keyword argument 'condition'`。テスト本体の`@pytest.mark.xfail(condition=..., raises=..., strict=...)`は実際のpytestが正式サポートする標準的な書き方であり誤りではない。本検証環境に実pytestをインストールできないため代用している自作シム`mini\_pytest.py`(本リポジトリの一部ではない)が`condition`引数を実装していないために発生するエラーで、リポジトリ側の不備ではない。
+
+\*\*調査: `sefer.Sanctum`の`restrict\_reads`デフォルト値をTrueに変更すべきか\*\*(ユーザーへの提案として自分で出していた検討事項)。実際に本番相当のエージェントループである`src/ollama\_agent\_loop.py`・`src/openai\_agent\_loop.py`はいずれも既に呼び出し時に明示的に`restrict\_reads=True`を指定しており、ライブラリ側のデフォルト値(`False`、後方互換のため)が実際の防御レベルに影響する呼び出し箇所は現状存在しないことを確認した(`angels/\_common.py`の検査用サブプロセステンプレートも`restrict\_reads`を指定しない汎用ハーネスであり、読み取り制限の検証自体を目的としていないため対象外)。また`tests/test\_read\_restriction.py`はデフォルト`False`での後方互換動作を正式な期待結果として検証している。実運用側には防御漏れが無く、デフォルト値の変更は後方互換テストの意図的な破壊になるため、\*\*変更は行わなかった\*\*。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
