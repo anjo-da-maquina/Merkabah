@@ -112,6 +112,19 @@ agent.run_task("タスクの指示内容")
 `openai`パッケージは`run_task()`実行時に初めてimportされるため、未インストールでも
 本ファイルをimportするだけなら例外は発生しない。
 
+## 🌀 メタトロンの統括（完全自動化防衛ループ、`revelations/`へレポート出力）
+ラジエル(偵察)→サマエル(ローカルOllamaによる攻撃コード生成)→天使(Blue Team、
+Gabriel静的解析+Sandalphon動的隔離検証)→ガブリエル(Markdownレポート生成)の
+一連を1サイクルとして自動実行する。実行には**Ollama**(デフォルトモデル`llama3.1`)
+と**Dockerデーモン**の両方が必要(Sandalphon層が実行前にコンテナ内で動的検証するため)。
+
+```
+python src/metatron_orchestrator.py
+```
+実行結果は`revelations/gabriel_revelation_<サイクルID>.md`に記録される。デフォルトは
+1サイクルのみ。複数サイクル回す場合はコード側で
+`MetatronOrchestrator().execute_holy_war(cycles=N)`を呼ぶ。
+
 ## 🔑 証明書（ataraxia_certificate.json）の再発行
 [2026-10改訂] 以前は`provisioning_agent.py`実行後に`ataraxia_certificate.json`と
 `maquina_gatekeeper.py`の両方を即座にコミットする運用だったが、これは提案者が

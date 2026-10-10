@@ -321,6 +321,18 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### V. `COMMANDS.md`に`metatron\_orchestrator.py`(完全自動化防衛ループ「聖戦」)の起動手順を追記
+
+§Uと同じ趣旨の棚卸しの続きとして、もう一つ未ドキュメント化だった実装済み機能を発見し補完した。
+
+\*\*追記内容\*\*: `src/metatron\_orchestrator.py`の`MetatronOrchestrator.execute\_holy\_war()`は、ラジエル(`intelligence\_cycle.RazielIntelligence`、偵察)→サマエル(`intelligence\_cycle.SamaelWeaponization`、ローカルOllamaによる攻撃コード生成)→天使(`angelic\_evolution.EvolvingAngel`、Blue Team=Gabriel静的解析+Sandalphon動的隔離検証)→ガブリエル(`GabrielRevelation`、Markdownレポート生成)を1サイクルとして自動実行する、実装済みの完全自動化防衛ループである。`if \_\_name\_\_ == "\_\_main\_\_"`から直接実行可能(`python src/metatron\_orchestrator.py`)だが、`COMMANDS.md`・`README.md`のいずれにもこの起動方法の記載が無かった。実行には(§Uのollama\_agent\_loop同様)Ollamaと稼働中のDockerデーモンの両方が必要であること、結果が`revelations/gabriel\_revelation\_<サイクルID>.md`に出力されることを明記した。
+
+\*\*確認\*\*: `deadmans\_switch.CollarProtocol`が要求する環境変数`ANJO\_COLLAR\_SEAL`は、呼び出し元の`intelligence\_cycle.py`モジュール読み込み時に自動設定される(`os.environ["ANJO\_COLLAR\_SEAL"] = "VALID\_MYTHOS\_SEAL\_999"`)ため、利用者が追加で設定する必要はないことを確認した。
+
+ドキュメントのみの追記のため、`mini\_pytest.py`実行結果は変更前と同一の`PASS=78 XFAIL=2 FAIL=0 ERROR=2`であることを確認した。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
