@@ -285,6 +285,16 @@ Metatronが提案する禁止イベントは`sefer/raziel_ledger_pending.json`�
 
 
 
+\### S. `docker-compose.yml`の用途を「テスト専用サンドボックス」として確定、死んだ`oracle\_output`マウントを削除
+
+§Rで保留にしていた設計判断(`docker-compose.yml`の`network\_mode: "none"`と実運用エージェントの用途整合性)について、ユーザー承認を得て方針を確定した。
+
+\*\*判断根拠\*\*: `README.md`・`COMMANDS.md`のどちらにも`docker-compose`自体への言及が一切無く、本コンテナを「ローカルOllamaサーバーと通信する実運用エージェントの実行環境」として使う計画の裏付けが見当たらなかった。一方`Dockerfile`のデフォルト`CMD`は`pytest tests/`であり、これが唯一確認できる実利用経路である。架空の将来用途を推測して再設計するより、裏付けのある現状の用途(テスト実行)に合わせて明確化する方が安全と判断した。
+
+\*\*修正\*\*: `network\_mode: "none"`はそのまま維持し、「テストスイートがネットワーク通信を一切発生させないことを前提にした、テスト専用・ネットワーク遮断サンドボックス」という用途をコメントで明記した。実運用エージェントをOllamaと通信させて動かしたい場合は、本コンテナの外(ホスト上で直接実行)か、`network\_mode`を緩めた別のcomposeサービスを別途新設する必要がある旨も明記した。あわせて、どの`.py`ファイルからも参照されていなかった死んだ`oracle\_output/`ボリュームマウントを削除した。`ataraxia\_certificate.json`(読み取り専用マウント)・`zk\_audit\_trail.json`(`maquina\_gatekeeper.py`の`ZKAuditTrail`が書き込む)は実際に使われていることを確認し、変更していない。
+
+
+
 \## 4. 創造主の絶対権限（The Creator's Air）
 
 Tartarusのエンジンは、起動直後に `uuid.getnode()` を用いてホストマシンの物理MACアドレスを取得し、不可逆ハッシュ（SHA-256）に変換して検証する。
