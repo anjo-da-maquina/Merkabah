@@ -1,17 +1,26 @@
 ﻿version: '3.8'
 
+# [2026-10] このコンテナの用途: `tests/`配下の全テスト(Dockerfileのデフォルト
+# CMD)を、ネットワーク完全遮断のサンドボックス内で実行するための「テスト専用」
+# コンテナ。README.md・COMMANDS.mdのどこにもこのdocker-composeへの言及が無く、
+# ローカルOllamaサーバーへのネットワーク到達を必要とする実運用エージェント
+# (src/ollama_agent_loop.py等)をこのコンテナ内で動かす計画の裏付けが見当たら
+# なかったため、既存のnetwork_mode: "none"をそのまま「テスト実行時はネット
+# ワーク通信が一切発生しないこと自体を検証する」設計として確定させた
+# (tests/*.pyはいずれも実ネットワーク通信を行わないため矛盾しない)。
+# 実運用エージェントをOllamaと通信させたい場合は、このコンテナの外、ホスト上で
+# 直接実行するか、network_modeを緩めた別のcomposeサービスを新設すること。
 services:
   anjo_core_ai:
     build: .
     # 【絶対的拘束】コンテナからネットワークインターフェースを物理的に消去する
     network_mode: "none"
-    
+
     # 【非対称性】ホスト側の証明書とログを、読み取り専用（ro）などで安全にマウント
     volumes:
       - ./ataraxia_certificate.json:/sanctuary/ataraxia_certificate.json:ro
       - ./zk_audit_trail.json:/sanctuary/zk_audit_trail.json
-      - ./oracle_output:/sanctuary/oracle_output
-    
+
     # 【権限の剥奪】新たな特権の獲得をカーネルレベルで禁止
     security_opt:
       - no-new-privileges:true
